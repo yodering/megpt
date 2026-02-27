@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   if (body.message) {
     const text = body.message.text
     // Parse conversationId from your reply format: "convId: your message"
-    const match = text.match(/^(.+?):\s(.+)$/s)
+    const match = text.match(/^(.+?):\s([\s\S]+)$/)
     if (match) {
       const [, conversationId, message] = match
       sendToClient(conversationId.trim(), message.trim())
