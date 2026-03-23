@@ -16,6 +16,7 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 NEXTAUTH_SECRET=
 NEXTAUTH_URL=http://localhost:3000
+ADMIN_EMAIL=you@example.com
 DATABASE_URL=
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
@@ -34,15 +35,19 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 NEXTAUTH_SECRET=
 NEXTAUTH_URL=https://your-app.up.railway.app
+ADMIN_EMAIL=you@example.com
 DATABASE_URL=
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
 ```
 
 4. Run the SQL in [`sql/auth-schema.sql`](/Users/yoder/Documents/DIG345/megpt/sql/auth-schema.sql) against the Railway Postgres database.
-5. Redeploy the web service.
+5. Run the SQL in [`sql/app-schema.sql`](/Users/yoder/Documents/DIG345/megpt/sql/app-schema.sql) against the Railway Postgres database.
+6. Redeploy the web service.
 
 Railway usually injects a usable connection string after the services are linked. This project expects the standard `DATABASE_URL`.
+
+`ADMIN_EMAIL` is the only Google account allowed to access `/admin`.
 
 ## Supabase cleanup
 

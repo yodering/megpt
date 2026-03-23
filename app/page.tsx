@@ -1,6 +1,6 @@
 "use client"
 
-import { useSession } from "next-auth/react"
+import { signIn, useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { ChatHeader } from "@/components/chat-header"
@@ -19,10 +19,30 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const conversationId = "test-123"
+  const [conversationId, setConversationId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!session) return
+
+    async function loadConversation() {
+      const response = await fetch("/api/conversation", { cache: "no-store" })
+      if (!response.ok) return
+      const data = await response.json()
+      setConversationId(String(data.conversation.id))
+      setMessages(
+        data.messages.map((message: { senderType: string; body: string }) => ({
+          role: message.senderType === "user" ? "user" : "assistant",
+          content: message.body,
+        }))
+      )
+    }
+
+    loadConversation()
+  }, [session])
+
+  useEffect(() => {
+    if (!session || !conversationId) return
+
     const es = new EventSource(`/api/sse?conversationId=${conversationId}`)
     es.onmessage = (e) => {
       const data = JSON.parse(e.data)
@@ -32,21 +52,28 @@ export default function Home() {
       ])
       setIsLoading(false)
     }
+
     return () => es.close()
-  }, [session])
+  }, [conversationId, session])
 
   async function handleSend(text: string) {
+    if (!session) {
+      signIn("google")
+      return
+    }
+
     setMessages((prev) => [...prev, { role: "user", content: text }])
     setIsLoading(true)
-    await fetch("/api/telegram", {
+
+    const response = await fetch("/api/conversation/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text,
-        userEmail: session?.user?.email,
-        conversationId,
-      }),
+      body: JSON.stringify({ text }),
     })
+
+    if (!response.ok) {
+      setIsLoading(false)
+    }
   }
 
   return (
