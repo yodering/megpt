@@ -11,7 +11,7 @@ export function ChatHeader() {
     <header className="flex items-center justify-between px-4 py-2 border-b border-[#e5e5e5]/50 bg-white">
       {/* Left: model selector */}
       <button className="flex items-center gap-1 text-lg font-semibold text-[#0d0d0d] hover:bg-[#f5f5f5] rounded-lg px-2 py-1 transition-colors">
-        ChatGPT
+        MeGPT
         <ChevronDown className="w-4 h-4 text-[#6e6e6e]" />
       </button>
 

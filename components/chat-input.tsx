@@ -70,7 +70,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
       </form>
 
       <p className="text-xs text-[#9e9e9e] mt-2 text-center">
-        ChatGPT can make mistakes. Check important info.
+        MeGPT can make mistakes. Check important info.
       </p>
     </div>
   )
