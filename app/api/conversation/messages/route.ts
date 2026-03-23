@@ -7,7 +7,7 @@ export const runtime = "nodejs"
 export async function POST(req: NextRequest) {
   const session = await requireSession()
 
-  if (!session?.user?.id) {
+  if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -18,7 +18,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No text" }, { status: 400 })
   }
 
-  const conversation = await getOrCreateConversationForUser(Number(session.user.id))
+  const conversation = await getOrCreateConversationForUser(
+    session.user.email,
+    session.user.name
+  )
   const message = await createMessage(conversation.id, "user", text)
 
   return NextResponse.json({ conversation, message })

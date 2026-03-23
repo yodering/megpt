@@ -137,7 +137,7 @@ export function AdminInbox({
             >
               <div className="flex items-center justify-between gap-3">
                 <p className="truncate text-sm font-medium text-[#161616]">
-                  {conversation.userName || conversation.userEmail || `User ${conversation.userId}`}
+                  {conversation.userName || conversation.userEmail}
                 </p>
                 <span className="rounded-full bg-[#e7dece] px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-[#5a4f3d]">
                   {conversation.status}
@@ -160,8 +160,7 @@ export function AdminInbox({
             <div className="border-b border-[#ece5d8] px-6 py-4">
               <p className="text-lg font-semibold">
                 {activeConversation.conversation.userName ||
-                  activeConversation.conversation.userEmail ||
-                  `User ${activeConversation.conversation.userId}`}
+                  activeConversation.conversation.userEmail}
               </p>
               <p className="text-sm text-[#6a6256]">
                 {activeConversation.conversation.userEmail}

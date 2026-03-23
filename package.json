@@ -9,7 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@auth/pg-adapter": "^1.11.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.577.0",
     "motion": "^12.38.0",

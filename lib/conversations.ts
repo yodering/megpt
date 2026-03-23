@@ -2,9 +2,8 @@ import { getDbPool } from "@/lib/db"
 
 export type ConversationSummary = {
   id: number
-  userId: number
+  userEmail: string
   userName: string | null
-  userEmail: string | null
   status: string
   lastMessageAt: string
   lastMessageBody: string | null
@@ -19,40 +18,54 @@ export type ConversationMessage = {
   createdAt: string
 }
 
-export async function getOrCreateConversationForUser(userId: number) {
+export async function getOrCreateConversationForUser(
+  userEmail: string,
+  userName?: string | null
+) {
   const pool = getDbPool()
 
   const existing = await pool.query<{
     id: number
-    userId: number
+    userEmail: string
+    userName: string | null
     status: string
     createdAt: string
     updatedAt: string
     lastMessageAt: string
   }>(
-    `SELECT id, "userId", status, "createdAt", "updatedAt", "lastMessageAt"
+    `SELECT id, "userEmail", "userName", status, "createdAt", "updatedAt", "lastMessageAt"
      FROM conversations
-     WHERE "userId" = $1
+     WHERE "userEmail" = $1
      LIMIT 1`,
-    [userId]
+    [userEmail]
   )
 
   if (existing.rowCount) {
+    if (userName && existing.rows[0].userName !== userName) {
+      await pool.query(
+        `UPDATE conversations
+         SET "userName" = $2, "updatedAt" = NOW()
+         WHERE id = $1`,
+        [existing.rows[0].id, userName]
+      )
+      existing.rows[0].userName = userName
+    }
     return existing.rows[0]
   }
 
   const created = await pool.query<{
     id: number
-    userId: number
+    userEmail: string
+    userName: string | null
     status: string
     createdAt: string
     updatedAt: string
     lastMessageAt: string
   }>(
-    `INSERT INTO conversations ("userId")
-     VALUES ($1)
-     RETURNING id, "userId", status, "createdAt", "updatedAt", "lastMessageAt"`,
-    [userId]
+    `INSERT INTO conversations ("userEmail", "userName")
+     VALUES ($1, $2)
+     RETURNING id, "userEmail", "userName", status, "createdAt", "updatedAt", "lastMessageAt"`,
+    [userEmail, userName ?? null]
   )
 
   return created.rows[0]
@@ -110,8 +123,11 @@ export async function createMessage(
   return inserted.rows[0]
 }
 
-export async function getConversationForUser(userId: number) {
-  const conversation = await getOrCreateConversationForUser(userId)
+export async function getConversationForUser(
+  userEmail: string,
+  userName?: string | null
+) {
+  const conversation = await getOrCreateConversationForUser(userEmail, userName)
   const messages = await listMessagesForConversation(conversation.id)
 
   return { conversation, messages }
@@ -122,9 +138,8 @@ export async function listConversationsForAdmin() {
   const result = await pool.query<ConversationSummary>(
     `SELECT
        c.id,
-       c."userId" AS "userId",
-       u.name AS "userName",
-       u.email AS "userEmail",
+       c."userEmail" AS "userEmail",
+       c."userName" AS "userName",
        c.status,
        c."lastMessageAt" AS "lastMessageAt",
        (
@@ -136,9 +151,8 @@ export async function listConversationsForAdmin() {
        ) AS "lastMessageBody",
        COUNT(m.id)::int AS "messageCount"
      FROM conversations c
-     JOIN users u ON u.id = c."userId"
      LEFT JOIN messages m ON m."conversationId" = c.id
-     GROUP BY c.id, u.id
+     GROUP BY c.id
      ORDER BY c."lastMessageAt" DESC, c.id DESC`
   )
 
@@ -151,9 +165,8 @@ export async function getConversationForAdmin(conversationId: number) {
   const conversationResult = await pool.query<ConversationSummary>(
     `SELECT
        c.id,
-       c."userId" AS "userId",
-       u.name AS "userName",
-       u.email AS "userEmail",
+       c."userEmail" AS "userEmail",
+       c."userName" AS "userName",
        c.status,
        c."lastMessageAt" AS "lastMessageAt",
        (
@@ -165,10 +178,9 @@ export async function getConversationForAdmin(conversationId: number) {
        ) AS "lastMessageBody",
        COUNT(m.id)::int AS "messageCount"
      FROM conversations c
-     JOIN users u ON u.id = c."userId"
      LEFT JOIN messages m ON m."conversationId" = c.id
      WHERE c.id = $1
-     GROUP BY c.id, u.id
+     GROUP BY c.id
      LIMIT 1`,
     [conversationId]
   )

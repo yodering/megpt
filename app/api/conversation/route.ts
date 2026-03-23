@@ -7,10 +7,13 @@ export const runtime = "nodejs"
 export async function GET() {
   const session = await requireSession()
 
-  if (!session?.user?.id) {
+  if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const conversation = await getConversationForUser(Number(session.user.id))
+  const conversation = await getConversationForUser(
+    session.user.email,
+    session.user.name
+  )
   return NextResponse.json(conversation)
 }

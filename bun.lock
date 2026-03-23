@@ -4,7 +4,6 @@
     "": {
       "name": "megpt",
       "dependencies": {
-        "@auth/pg-adapter": "^1.11.1",
         "clsx": "^2.1.1",
         "lucide-react": "^0.577.0",
         "motion": "^12.38.0",
@@ -36,8 +35,6 @@
     "@alloc/quick-lru": ["@alloc/quick-lru@5.2.0", "", {}, "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw=="],
 
     "@auth/core": ["@auth/core@0.41.1", "", { "dependencies": { "@panva/hkdf": "^1.2.1", "jose": "^6.0.6", "oauth4webapi": "^3.3.0", "preact": "10.24.3", "preact-render-to-string": "6.5.11" }, "peerDependencies": { "@simplewebauthn/browser": "^9.0.1", "@simplewebauthn/server": "^9.0.2", "nodemailer": "^7.0.7" }, "optionalPeers": ["@simplewebauthn/browser", "@simplewebauthn/server", "nodemailer"] }, "sha512-t9cJ2zNYAdWMacGRMT6+r4xr1uybIdmYa49calBPeTqwgAFPV/88ac9TEvCR85pvATiSPt8VaNf+Gt24JIT/uw=="],
-
-    "@auth/pg-adapter": ["@auth/pg-adapter@1.11.1", "", { "dependencies": { "@auth/core": "0.41.1" }, "peerDependencies": { "pg": "^8" } }, "sha512-pEeY0f0Zdr80Psw2D7WIXCLOIcWKaZojP7rtCOqAN/MGYKAVC62tGZpkvYGsUJcPNmK0erAmebXTa4eUBKmC2Q=="],
 
     "@babel/code-frame": ["@babel/code-frame@7.29.0", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.28.5", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw=="],
 

@@ -82,3 +82,4 @@ That means:
 
 - Google login can work for any allowed Google account
 - `/admin` is only available to the email stored in `ADMIN_EMAIL`
+- Railway Postgres is used for conversations and messages, not for NextAuth account/session tables

@@ -22,7 +22,7 @@ TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
 ```
 
-If `DATABASE_URL` is omitted, auth falls back to JWT sessions. If `DATABASE_URL` is set, NextAuth stores users, linked Google accounts, and sessions in Postgres.
+Google auth uses JWT sessions. `DATABASE_URL` is used for app data such as conversations and messages.
 
 ## Railway Postgres setup
 
@@ -41,9 +41,8 @@ TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
 ```
 
-4. Run the SQL in [`sql/auth-schema.sql`](/Users/yoder/Documents/DIG345/megpt/sql/auth-schema.sql) against the Railway Postgres database.
-5. Run the SQL in [`sql/app-schema.sql`](/Users/yoder/Documents/DIG345/megpt/sql/app-schema.sql) against the Railway Postgres database.
-6. Redeploy the web service.
+4. Run the SQL in [`sql/app-schema.sql`](/Users/yoder/Documents/DIG345/megpt/sql/app-schema.sql) against the Railway Postgres database.
+5. Redeploy the web service.
 
 Railway usually injects a usable connection string after the services are linked. This project expects the standard `DATABASE_URL`.
 
