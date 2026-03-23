@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This is a Next.js app deployed on Railway with Google auth via NextAuth.
 
-## Getting Started
+## Local development
 
-First, run the development server:
+Install dependencies and run the app:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+bun install
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Create a `.env.local` with at least:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+NEXTAUTH_SECRET=
+NEXTAUTH_URL=http://localhost:3000
+DATABASE_URL=
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+If `DATABASE_URL` is omitted, auth falls back to JWT sessions. If `DATABASE_URL` is set, NextAuth stores users, linked Google accounts, and sessions in Postgres.
 
-## Learn More
+## Railway Postgres setup
 
-To learn more about Next.js, take a look at the following resources:
+1. In Railway, create a `PostgreSQL` service.
+2. In your web service, add a variable reference so the app receives the Postgres connection string as `DATABASE_URL`.
+3. Set these variables on the web service:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+NEXTAUTH_SECRET=
+NEXTAUTH_URL=https://your-app.up.railway.app
+DATABASE_URL=
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4. Run the SQL in [`sql/auth-schema.sql`](/Users/yoder/Documents/DIG345/megpt/sql/auth-schema.sql) against the Railway Postgres database.
+5. Redeploy the web service.
 
-## Deploy on Vercel
+Railway usually injects a usable connection string after the services are linked. This project expects the standard `DATABASE_URL`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Supabase cleanup
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This repo no longer uses Supabase. Remove these old variables from Railway and from your local `.env.local` if you no longer need them:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+SUPABASE_SECRET_KEY
+```
