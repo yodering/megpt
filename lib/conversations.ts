@@ -1,4 +1,4 @@
-import { getDbPool } from "@/lib/db"
+import { ensureAppSchema, getDbPool } from "@/lib/db"
 
 export type ConversationSummary = {
   id: number
@@ -22,6 +22,7 @@ export async function getOrCreateConversationForUser(
   userEmail: string,
   userName?: string | null
 ) {
+  await ensureAppSchema()
   const pool = getDbPool()
 
   const existing = await pool.query<{
@@ -72,6 +73,7 @@ export async function getOrCreateConversationForUser(
 }
 
 export async function listMessagesForConversation(conversationId: number) {
+  await ensureAppSchema()
   const pool = getDbPool()
   const result = await pool.query<ConversationMessage>(
     `SELECT
@@ -94,6 +96,7 @@ export async function createMessage(
   senderType: "user" | "operator",
   body: string
 ) {
+  await ensureAppSchema()
   const pool = getDbPool()
 
   const inserted = await pool.query<ConversationMessage>(
@@ -134,6 +137,7 @@ export async function getConversationForUser(
 }
 
 export async function listConversationsForAdmin() {
+  await ensureAppSchema()
   const pool = getDbPool()
   const result = await pool.query<ConversationSummary>(
     `SELECT
@@ -160,6 +164,7 @@ export async function listConversationsForAdmin() {
 }
 
 export async function getConversationForAdmin(conversationId: number) {
+  await ensureAppSchema()
   const pool = getDbPool()
 
   const conversationResult = await pool.query<ConversationSummary>(

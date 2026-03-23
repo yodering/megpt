@@ -41,8 +41,7 @@ TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
 ```
 
-4. Run the SQL in [`sql/app-schema.sql`](/Users/yoder/Documents/DIG345/megpt/sql/app-schema.sql) against the Railway Postgres database.
-5. Redeploy the web service.
+4. Redeploy the web service. The app will create its own conversation tables on first database use.
 
 Railway usually injects a usable connection string after the services are linked. This project expects the standard `DATABASE_URL`.
 
