@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { signIn, useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { Sidebar } from "@/components/sidebar"
@@ -26,7 +27,6 @@ export default function Home() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [conversation, setConversation] = useState<Conversation | null>(null)
-  const [queueMessage, setQueueMessage] = useState<string | null>(null)
 
   const activeChatTitle =
     messages.find((message) => message.role === "user")?.content.slice(0, 36) ||
@@ -34,14 +34,6 @@ export default function Home() {
   const activeChatPreview = messages[messages.length - 1]?.content || null
   const isAwaitingReply = conversation?.status === "awaiting_admin"
   const inputDisabled = isLoading || isAwaitingReply
-
-  const statusLabel = (() => {
-    if (!session) return "Sign in to start a conversation."
-    if (isLoading) return "Message received. MeGPT is preparing a response."
-    if (isAwaitingReply) return "MeGPT is still working on your response."
-    if (conversation?.status === "awaiting_user") return "Ready for your next message."
-    return "Replies may take a few minutes during busy periods."
-  })()
 
   useEffect(() => {
     if (!session) return
@@ -82,7 +74,6 @@ export default function Home() {
           : prev
       )
       setIsLoading(false)
-      setQueueMessage(null)
     }
 
     return () => es.close()
@@ -96,7 +87,6 @@ export default function Home() {
 
     setMessages((prev) => [...prev, { role: "user", content: text }])
     setIsLoading(true)
-    setQueueMessage("Message received. MeGPT is processing it now.")
 
     const response = await fetch("/api/conversation/messages", {
       method: "POST",
@@ -115,9 +105,6 @@ export default function Home() {
               }
             : prev
         )
-        setQueueMessage("MeGPT is still working on the current response.")
-      } else {
-        setQueueMessage("MeGPT could not process that message. Please try again.")
       }
       setMessages((prev) => prev.slice(0, -1))
       return
@@ -142,35 +129,50 @@ export default function Home() {
         {messages.length === 0 ? (
           <>
             <HeroPrompt />
-            <div className="px-4">
-              <div className="mx-auto mb-4 max-w-[672px] rounded-2xl border border-[#ece7da] bg-[#faf6ed] px-4 py-3 text-sm text-[#5f5647]">
-                {queueMessage || statusLabel}
-              </div>
+            <div className="pb-4">
+              <ChatInput
+                onSend={handleSend}
+                disabled={inputDisabled}
+                placeholder={isAwaitingReply ? "MeGPT is still working..." : "Ask anything"}
+                helperText="MeGPT can make mistakes. Check important info."
+              />
+              <FooterDisclosure />
             </div>
-            <ChatInput
-              onSend={handleSend}
-              disabled={inputDisabled}
-              placeholder={isAwaitingReply ? "MeGPT is still working..." : "Ask anything"}
-              helperText={statusLabel}
-            />
           </>
         ) : (
           <>
             <ChatMessages messages={messages} isLoading={isLoading} />
-            <div className="px-4">
-              <div className="mx-auto mb-4 max-w-[672px] rounded-2xl border border-[#ece7da] bg-[#faf6ed] px-4 py-3 text-sm text-[#5f5647]">
-                {queueMessage || statusLabel}
-              </div>
+            <div className="pb-4">
+              <ChatInput
+                onSend={handleSend}
+                disabled={inputDisabled}
+                placeholder={isAwaitingReply ? "MeGPT is still working..." : "Ask anything"}
+                helperText="MeGPT can make mistakes. Check important info."
+              />
+              <FooterDisclosure />
             </div>
-            <ChatInput
-              onSend={handleSend}
-              disabled={inputDisabled}
-              placeholder={isAwaitingReply ? "MeGPT is still working..." : "Ask anything"}
-              helperText={statusLabel}
-            />
           </>
         )}
       </div>
     </div>
+  )
+}
+
+function FooterDisclosure() {
+  return (
+    <p className="px-6 text-center text-xs leading-5 text-[#8d877c]">
+      By messaging MeGPT, a human, you agree to our{" "}
+      <Link href="/terms" className="underline underline-offset-2 hover:text-[#5f5647]">
+        Terms
+      </Link>{" "}
+      and have read our{" "}
+      <Link
+        href="/privacy"
+        className="underline underline-offset-2 hover:text-[#5f5647]"
+      >
+        Privacy Policy
+      </Link>
+      .
+    </p>
   )
 }

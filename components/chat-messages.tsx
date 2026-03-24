@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { BlurRevealWord } from "@/components/ui/blur-reveal"
-import { Spinner } from "@/components/ui/spinner"
+import { ShimmerText } from "@/components/ui/shimmer-text"
 
 interface Message {
   role: string
@@ -49,7 +49,9 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
 
         {isLoading && (
           <div className="flex justify-start">
-            <Spinner />
+            <ShimmerText className="text-sm tracking-[0.01em] text-[#7d7568]">
+              Thinking
+            </ShimmerText>
           </div>
         )}
 

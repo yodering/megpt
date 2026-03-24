@@ -49,13 +49,18 @@ export function ChatHeader() {
               onClick={() => signIn("google")}
               className="text-sm border border-[#d1d1d1] text-[#0d0d0d] px-4 py-2 rounded-full hover:bg-[#f5f5f5] transition-colors"
             >
-              Sign up
+              Sign up for free
             </button>
           </>
         )}
-        <button className="p-2 rounded-full hover:bg-[#f5f5f5] transition-colors">
+        <Link
+          href="/privacy"
+          aria-label="Help"
+          title="Help"
+          className="p-2 rounded-full hover:bg-[#f5f5f5] transition-colors"
+        >
           <CircleHelp className="w-5 h-5 text-[#6e6e6e]" />
-        </button>
+        </Link>
       </div>
     </header>
   )
