@@ -18,6 +18,16 @@ export type ConversationMessage = {
   createdAt: string
 }
 
+export type ConversationRecord = {
+  id: number
+  userEmail: string
+  userName: string | null
+  status: string
+  createdAt: string
+  updatedAt: string
+  lastMessageAt: string
+}
+
 export async function getOrCreateConversationForUser(
   userEmail: string,
   userName?: string | null
@@ -25,15 +35,7 @@ export async function getOrCreateConversationForUser(
   await ensureAppSchema()
   const pool = getDbPool()
 
-  const existing = await pool.query<{
-    id: number
-    userEmail: string
-    userName: string | null
-    status: string
-    createdAt: string
-    updatedAt: string
-    lastMessageAt: string
-  }>(
+  const existing = await pool.query<ConversationRecord>(
     `SELECT id, "userEmail", "userName", status, "createdAt", "updatedAt", "lastMessageAt"
      FROM conversations
      WHERE "userEmail" = $1
@@ -54,15 +56,7 @@ export async function getOrCreateConversationForUser(
     return existing.rows[0]
   }
 
-  const created = await pool.query<{
-    id: number
-    userEmail: string
-    userName: string | null
-    status: string
-    createdAt: string
-    updatedAt: string
-    lastMessageAt: string
-  }>(
+  const created = await pool.query<ConversationRecord>(
     `INSERT INTO conversations ("userEmail", "userName")
      VALUES ($1, $2)
      RETURNING id, "userEmail", "userName", status, "createdAt", "updatedAt", "lastMessageAt"`,
@@ -124,6 +118,20 @@ export async function createMessage(
   )
 
   return inserted.rows[0]
+}
+
+export async function getConversationById(conversationId: number) {
+  await ensureAppSchema()
+  const pool = getDbPool()
+  const result = await pool.query<ConversationRecord>(
+    `SELECT id, "userEmail", "userName", status, "createdAt", "updatedAt", "lastMessageAt"
+     FROM conversations
+     WHERE id = $1
+     LIMIT 1`,
+    [conversationId]
+  )
+
+  return result.rows[0] ?? null
 }
 
 export async function getConversationForUser(

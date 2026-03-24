@@ -7,9 +7,16 @@ import { cn } from "@/lib/utils"
 interface ChatInputProps {
   onSend: (message: string) => void
   disabled?: boolean
+  placeholder?: string
+  helperText?: string
 }
 
-export function ChatInput({ onSend, disabled }: ChatInputProps) {
+export function ChatInput({
+  onSend,
+  disabled,
+  placeholder = "Ask anything",
+  helperText = "MeGPT can make mistakes. Check important info.",
+}: ChatInputProps) {
   const [value, setValue] = useState("")
 
   function handleSubmit(e: FormEvent) {
@@ -42,7 +49,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
               handleSubmit(e)
             }
           }}
-          placeholder="Ask anything"
+          placeholder={placeholder}
           rows={1}
           className="flex-1 bg-transparent text-[#0d0d0d] text-base placeholder:text-[#9e9e9e] resize-none outline-none py-2 max-h-[200px]"
           style={{ fieldSizing: "content" } as React.CSSProperties}
@@ -70,7 +77,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
       </form>
 
       <p className="text-xs text-[#9e9e9e] mt-2 text-center">
-        MeGPT can make mistakes. Check important info.
+        {helperText}
       </p>
     </div>
   )

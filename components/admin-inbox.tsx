@@ -19,6 +19,9 @@ export function AdminInbox({
   initialConversations,
   initialConversation,
 }: AdminInboxProps) {
+  const [filter, setFilter] = useState<"all" | "awaiting_admin" | "awaiting_user">(
+    "awaiting_admin"
+  )
   const [conversations, setConversations] = useState(initialConversations)
   const [activeConversationId, setActiveConversationId] = useState<number | null>(
     initialConversation?.conversation.id ?? initialConversations[0]?.id ?? null
@@ -110,9 +113,14 @@ export function AdminInbox({
 
   const messageItems =
     activeConversation?.messages.map((message) => ({
-      role: message.senderType === "user" ? "user" : "assistant",
+      role: message.senderType === "user" ? "assistant" : "user",
       content: message.body,
     })) ?? []
+
+  const filteredConversations = conversations.filter((conversation) => {
+    if (filter === "all") return true
+    return conversation.status === filter
+  })
 
   return (
     <div className="grid min-h-[calc(100vh-81px)] grid-cols-1 md:grid-cols-[320px_minmax(0,1fr)]">
@@ -122,10 +130,31 @@ export function AdminInbox({
           <p className="text-xs text-[#6a6256]">
             {conversations.length} total threads
           </p>
+          <div className="mt-3 flex gap-2">
+            {[
+              ["awaiting_admin", "Needs reply"],
+              ["awaiting_user", "Waiting"],
+              ["all", "All"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                onClick={() =>
+                  setFilter(value as "all" | "awaiting_admin" | "awaiting_user")
+                }
+                className={`rounded-full px-3 py-1.5 text-xs transition-colors ${
+                  filter === value
+                    ? "bg-[#161616] text-white"
+                    : "bg-[#e7dece] text-[#5a4f3d] hover:bg-[#ddd2c0]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex flex-col">
-          {conversations.map((conversation) => (
+          {filteredConversations.map((conversation) => (
             <button
               key={conversation.id}
               onClick={() => setActiveConversationId(conversation.id)}
@@ -151,6 +180,11 @@ export function AdminInbox({
               </p>
             </button>
           ))}
+          {filteredConversations.length === 0 && (
+            <div className="px-5 py-6 text-sm text-[#6a6256]">
+              No conversations in this filter.
+            </div>
+          )}
         </div>
       </aside>
 

@@ -23,9 +23,16 @@ const navItems = [
 interface SidebarProps {
   collapsed: boolean
   onToggle: () => void
+  activeChatTitle?: string | null
+  activeChatPreview?: string | null
 }
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({
+  collapsed,
+  onToggle,
+  activeChatTitle,
+  activeChatPreview,
+}: SidebarProps) {
   const { data: session } = useSession()
 
   if (collapsed) {
@@ -77,6 +84,22 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           </button>
         ))}
       </nav>
+
+      {session && activeChatTitle && (
+        <div className="px-3 pt-4">
+          <p className="px-2 pb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#6e6e6e]">
+            Chats
+          </p>
+          <button className="w-full rounded-2xl border border-[#e5e5e5] bg-white px-3 py-3 text-left transition-colors hover:bg-[#fcfcfc]">
+            <p className="truncate text-sm font-medium text-[#0d0d0d]">
+              {activeChatTitle}
+            </p>
+            <p className="mt-1 line-clamp-2 text-xs text-[#6e6e6e]">
+              {activeChatPreview || "No messages yet"}
+            </p>
+          </button>
+        </div>
+      )}
 
       {/* Spacer */}
       <div className="flex-1" />

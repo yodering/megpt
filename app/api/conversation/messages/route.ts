@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createMessage, getOrCreateConversationForUser } from "@/lib/conversations"
+import {
+  createMessage,
+  getConversationById,
+  getOrCreateConversationForUser,
+} from "@/lib/conversations"
 import { requireSession } from "@/lib/server-auth"
 
 export const runtime = "nodejs"
@@ -22,7 +26,19 @@ export async function POST(req: NextRequest) {
     session.user.email,
     session.user.name
   )
-  const message = await createMessage(conversation.id, "user", text)
 
-  return NextResponse.json({ conversation, message })
+  if (conversation.status === "awaiting_admin") {
+    return NextResponse.json(
+      { error: "A reply is already pending for this conversation." },
+      { status: 409 }
+    )
+  }
+
+  const message = await createMessage(conversation.id, "user", text)
+  const updatedConversation = await getConversationById(conversation.id)
+
+  return NextResponse.json({
+    conversation: updatedConversation ?? conversation,
+    message,
+  })
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { sendToClient } from "@/app/api/sse/route"
-import { createMessage } from "@/lib/conversations"
+import { createMessage, getConversationById } from "@/lib/conversations"
 import { requireAdminSession } from "@/lib/server-auth"
 
 export const runtime = "nodejs"
@@ -24,6 +24,12 @@ export async function POST(
 
   const { id } = await params
   const conversationId = Number(id)
+  const conversation = await getConversationById(conversationId)
+
+  if (!conversation) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
+
   const message = await createMessage(conversationId, "operator", text)
 
   sendToClient(String(conversationId), message.body)
