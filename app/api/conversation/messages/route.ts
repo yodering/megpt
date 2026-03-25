@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import {
   createMessage,
   getConversationById,
+  getConversationByIdForUser,
   getOrCreateConversationForUser,
 } from "@/lib/conversations"
 import { syncUserMessageToDiscord } from "@/lib/discord-bot"
@@ -18,15 +19,18 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
   const text = typeof body.text === "string" ? body.text.trim() : ""
+  const conversationId =
+    typeof body.conversationId === "number" ? body.conversationId : null
 
   if (!text) {
     return NextResponse.json({ error: "No text" }, { status: 400 })
   }
 
-  const conversation = await getOrCreateConversationForUser(
-    session.user.email,
-    session.user.name
-  )
+  const conversation =
+    (conversationId
+      ? await getConversationByIdForUser(conversationId, session.user.email)
+      : null) ??
+    (await getOrCreateConversationForUser(session.user.email, session.user.name))
 
   if (conversation.status === "awaiting_admin") {
     return NextResponse.json(

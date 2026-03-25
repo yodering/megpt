@@ -32,29 +32,21 @@ export async function getOrCreateConversationForUser(
   userEmail: string,
   userName?: string | null
 ) {
+  const latestConversation = await getLatestConversationForUser(userEmail, userName)
+
+  if (latestConversation) {
+    return latestConversation
+  }
+
+  return createConversationForUser(userEmail, userName)
+}
+
+export async function createConversationForUser(
+  userEmail: string,
+  userName?: string | null
+) {
   await ensureAppSchema()
   const pool = getDbPool()
-
-  const existing = await pool.query<ConversationRecord>(
-    `SELECT id, "userEmail", "userName", status, "createdAt", "updatedAt", "lastMessageAt"
-     FROM conversations
-     WHERE "userEmail" = $1
-     LIMIT 1`,
-    [userEmail]
-  )
-
-  if (existing.rowCount) {
-    if (userName && existing.rows[0].userName !== userName) {
-      await pool.query(
-        `UPDATE conversations
-         SET "userName" = $2, "updatedAt" = NOW()
-         WHERE id = $1`,
-        [existing.rows[0].id, userName]
-      )
-      existing.rows[0].userName = userName
-    }
-    return existing.rows[0]
-  }
 
   const created = await pool.query<ConversationRecord>(
     `INSERT INTO conversations ("userEmail", "userName")
@@ -64,6 +56,39 @@ export async function getOrCreateConversationForUser(
   )
 
   return created.rows[0]
+}
+
+export async function getLatestConversationForUser(
+  userEmail: string,
+  userName?: string | null
+) {
+  await ensureAppSchema()
+  const pool = getDbPool()
+
+  const existing = await pool.query<ConversationRecord>(
+    `SELECT id, "userEmail", "userName", status, "createdAt", "updatedAt", "lastMessageAt"
+     FROM conversations
+     WHERE "userEmail" = $1
+     ORDER BY "lastMessageAt" DESC, id DESC
+     LIMIT 1`,
+    [userEmail]
+  )
+
+  if (!existing.rowCount) {
+    return null
+  }
+
+  if (userName && existing.rows[0].userName !== userName) {
+    await pool.query(
+      `UPDATE conversations
+       SET "userName" = $2, "updatedAt" = NOW()
+       WHERE id = $1`,
+      [existing.rows[0].id, userName]
+    )
+    existing.rows[0].userName = userName
+  }
+
+  return existing.rows[0]
 }
 
 export async function listMessagesForConversation(conversationId: number) {
@@ -136,12 +161,66 @@ export async function getConversationById(conversationId: number) {
 
 export async function getConversationForUser(
   userEmail: string,
-  userName?: string | null
+  userName?: string | null,
+  conversationId?: number | null
 ) {
-  const conversation = await getOrCreateConversationForUser(userEmail, userName)
+  const conversation = conversationId
+    ? await getConversationByIdForUser(conversationId, userEmail)
+    : await getLatestConversationForUser(userEmail, userName)
+
+  if (!conversation) {
+    return { conversation: null, messages: [] }
+  }
+
   const messages = await listMessagesForConversation(conversation.id)
 
   return { conversation, messages }
+}
+
+export async function getConversationByIdForUser(
+  conversationId: number,
+  userEmail: string
+) {
+  await ensureAppSchema()
+  const pool = getDbPool()
+  const result = await pool.query<ConversationRecord>(
+    `SELECT id, "userEmail", "userName", status, "createdAt", "updatedAt", "lastMessageAt"
+     FROM conversations
+     WHERE id = $1 AND "userEmail" = $2
+     LIMIT 1`,
+    [conversationId, userEmail]
+  )
+
+  return result.rows[0] ?? null
+}
+
+export async function listConversationsForUser(userEmail: string) {
+  await ensureAppSchema()
+  const pool = getDbPool()
+  const result = await pool.query<ConversationSummary>(
+    `SELECT
+       c.id,
+       c."userEmail" AS "userEmail",
+       c."userName" AS "userName",
+       c.status,
+       c."lastMessageAt" AS "lastMessageAt",
+       (
+         SELECT m.body
+         FROM messages m
+         WHERE m."conversationId" = c.id
+         ORDER BY m."createdAt" DESC, m.id DESC
+         LIMIT 1
+       ) AS "lastMessageBody",
+       COUNT(m.id)::int AS "messageCount"
+     FROM conversations c
+     LEFT JOIN messages m ON m."conversationId" = c.id
+     WHERE c."userEmail" = $1
+     GROUP BY c.id
+     ORDER BY c."lastMessageAt" DESC, c.id DESC`,
+    [userEmail]
+  )
+
+  return result.rows
 }
 
 export async function listConversationsForAdmin() {

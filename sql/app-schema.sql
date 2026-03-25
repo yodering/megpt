@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS conversations (
   id SERIAL PRIMARY KEY,
-  "userEmail" TEXT NOT NULL UNIQUE,
+  "userEmail" TEXT NOT NULL,
   "userName" TEXT,
   status VARCHAR(64) NOT NULL DEFAULT 'open',
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -27,4 +27,8 @@ CREATE TABLE IF NOT EXISTS discord_threads (
 
 CREATE INDEX IF NOT EXISTS messages_conversation_id_idx ON messages("conversationId");
 CREATE INDEX IF NOT EXISTS conversations_last_message_at_idx ON conversations("lastMessageAt");
+CREATE INDEX IF NOT EXISTS conversations_user_email_idx ON conversations("userEmail");
 CREATE INDEX IF NOT EXISTS discord_threads_thread_id_idx ON discord_threads("threadId");
+
+ALTER TABLE conversations
+DROP CONSTRAINT IF EXISTS "conversations_userEmail_key";

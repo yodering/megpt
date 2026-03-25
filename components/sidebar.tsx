@@ -23,15 +23,23 @@ const navItems = [
 interface SidebarProps {
   collapsed: boolean
   onToggle: () => void
-  activeChatTitle?: string | null
-  activeChatPreview?: string | null
+  conversations?: Array<{
+    id: number
+    title: string
+    preview: string | null
+  }>
+  activeConversationId?: number | null
+  onSelectConversation?: (conversationId: number) => void
+  onNewChat?: () => void
 }
 
 export function Sidebar({
   collapsed,
   onToggle,
-  activeChatTitle,
-  activeChatPreview,
+  conversations = [],
+  activeConversationId,
+  onSelectConversation,
+  onNewChat,
 }: SidebarProps) {
   const { data: session } = useSession()
 
@@ -44,7 +52,10 @@ export function Sidebar({
         >
           <PanelLeftClose className="w-5 h-5 text-[#0d0d0d] rotate-180" />
         </button>
-        <button className="p-2 rounded-lg hover:bg-[#ececec] transition-colors">
+        <button
+          onClick={onNewChat}
+          className="p-2 rounded-lg hover:bg-[#ececec] transition-colors"
+        >
           <Plus className="w-5 h-5 text-[#0d0d0d]" />
         </button>
         <button className="p-2 rounded-lg hover:bg-[#ececec] transition-colors">
@@ -77,6 +88,7 @@ export function Sidebar({
         {navItems.map(({ icon: Icon, label }) => (
           <button
             key={label}
+            onClick={label === "New chat" ? onNewChat : undefined}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#0d0d0d] hover:bg-[#ececec] transition-colors text-left"
           >
             <Icon className="w-[18px] h-[18px] text-[#6e6e6e]" />
@@ -85,19 +97,31 @@ export function Sidebar({
         ))}
       </nav>
 
-      {session && activeChatTitle && (
+      {session && conversations.length > 0 && (
         <div className="px-3 pt-4">
           <p className="px-2 pb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#6e6e6e]">
             Chats
           </p>
-          <button className="w-full rounded-2xl border border-[#e5e5e5] bg-white px-3 py-3 text-left transition-colors hover:bg-[#fcfcfc]">
-            <p className="truncate text-sm font-medium text-[#0d0d0d]">
-              {activeChatTitle}
-            </p>
-            <p className="mt-1 line-clamp-2 text-xs text-[#6e6e6e]">
-              {activeChatPreview || "No messages yet"}
-            </p>
-          </button>
+          <div className="space-y-2">
+            {conversations.map((conversation) => (
+              <button
+                key={conversation.id}
+                onClick={() => onSelectConversation?.(conversation.id)}
+                className={`w-full rounded-2xl border px-3 py-3 text-left transition-colors ${
+                  activeConversationId === conversation.id
+                    ? "border-[#d8d8d8] bg-white"
+                    : "border-[#e5e5e5] bg-white hover:bg-[#fcfcfc]"
+                }`}
+              >
+                <p className="truncate text-sm font-medium text-[#0d0d0d]">
+                  {conversation.title}
+                </p>
+                <p className="mt-1 line-clamp-2 text-xs text-[#6e6e6e]">
+                  {conversation.preview || "No messages yet"}
+                </p>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

@@ -35,7 +35,7 @@ export async function ensureAppSchema() {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS conversations (
           id SERIAL PRIMARY KEY,
-          "userEmail" TEXT NOT NULL UNIQUE,
+          "userEmail" TEXT NOT NULL,
           "userName" TEXT,
           status VARCHAR(64) NOT NULL DEFAULT 'open',
           "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -62,7 +62,13 @@ export async function ensureAppSchema() {
 
         CREATE INDEX IF NOT EXISTS messages_conversation_id_idx ON messages("conversationId");
         CREATE INDEX IF NOT EXISTS conversations_last_message_at_idx ON conversations("lastMessageAt");
+        CREATE INDEX IF NOT EXISTS conversations_user_email_idx ON conversations("userEmail");
         CREATE INDEX IF NOT EXISTS discord_threads_thread_id_idx ON discord_threads("threadId");
+      `)
+
+      await pool.query(`
+        ALTER TABLE conversations
+        DROP CONSTRAINT IF EXISTS "conversations_userEmail_key";
       `)
     })().catch((error) => {
       globalThis.appSchemaReady = undefined

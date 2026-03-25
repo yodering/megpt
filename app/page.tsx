@@ -20,30 +20,42 @@ interface Conversation {
   status: string
 }
 
+interface ConversationSummary {
+  id: number
+  lastMessageBody: string | null
+  messageCount: number
+}
+
 export default function Home() {
   const { data: session } = useSession()
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [conversationId, setConversationId] = useState<number | null>(null)
   const [conversation, setConversation] = useState<Conversation | null>(null)
+  const [conversations, setConversations] = useState<ConversationSummary[]>([])
 
-  const activeChatTitle =
-    messages.find((message) => message.role === "user")?.content.slice(0, 36) ||
-    "Current conversation"
-  const activeChatPreview = messages[messages.length - 1]?.content || null
   const isAwaitingReply = conversation?.status === "awaiting_admin"
   const inputDisabled = isLoading || isAwaitingReply
+  const sidebarChats = conversations.map((item) => ({
+    id: item.id,
+    title:
+      item.lastMessageBody?.slice(0, 36) ||
+      (item.messageCount > 0 ? "Conversation" : "New chat"),
+    preview: item.lastMessageBody,
+  }))
 
   useEffect(() => {
     if (!session) return
 
-    async function loadConversation() {
-      const response = await fetch("/api/conversation", { cache: "no-store" })
+    async function loadConversation(activeId?: number | null) {
+      const search = activeId ? `?conversationId=${activeId}` : ""
+      const response = await fetch(`/api/conversation${search}`, { cache: "no-store" })
       if (!response.ok) return
       const data = await response.json()
-      setConversationId(String(data.conversation.id))
-      setConversation(data.conversation)
+      setConversations(data.conversations)
+      setConversationId(data.activeConversation?.id ?? null)
+      setConversation(data.activeConversation)
       setMessages(
         data.messages.map((message: { senderType: string; body: string }) => ({
           role: message.senderType === "user" ? "user" : "assistant",
@@ -91,7 +103,7 @@ export default function Home() {
     const response = await fetch("/api/conversation/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, conversationId }),
     })
 
     if (!response.ok) {
@@ -112,6 +124,61 @@ export default function Home() {
 
     const data = await response.json()
     setConversation(data.conversation)
+    setConversationId(data.conversation.id)
+    setConversations((prev) => {
+      const next = prev.filter((item) => item.id !== data.conversation.id)
+      return [
+        {
+          id: data.conversation.id,
+          lastMessageBody: text,
+          messageCount:
+            (prev.find((item) => item.id === data.conversation.id)?.messageCount ?? 0) + 1,
+        },
+        ...next,
+      ]
+    })
+  }
+
+  async function handleNewChat() {
+    if (!session) {
+      signIn("google")
+      return
+    }
+
+    const response = await fetch("/api/conversation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    })
+
+    if (!response.ok) return
+
+    const data = await response.json()
+    setConversations(data.conversations)
+    setConversationId(data.conversation.id)
+    setConversation(data.conversation)
+    setMessages([])
+    setIsLoading(false)
+  }
+
+  async function handleSelectConversation(nextConversationId: number) {
+    if (!session) return
+
+    const response = await fetch(`/api/conversation?conversationId=${nextConversationId}`, {
+      cache: "no-store",
+    })
+    if (!response.ok) return
+
+    const data = await response.json()
+    setConversations(data.conversations)
+    setConversationId(data.activeConversation?.id ?? null)
+    setConversation(data.activeConversation)
+    setMessages(
+      data.messages.map((message: { senderType: string; body: string }) => ({
+        role: message.senderType === "user" ? "user" : "assistant",
+        content: message.body,
+      }))
+    )
+    setIsLoading(false)
   }
 
   return (
@@ -119,8 +186,10 @@ export default function Home() {
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        activeChatTitle={conversationId ? activeChatTitle : null}
-        activeChatPreview={conversationId ? activeChatPreview : null}
+        conversations={sidebarChats}
+        activeConversationId={conversationId}
+        onSelectConversation={handleSelectConversation}
+        onNewChat={handleNewChat}
       />
 
       <div className="flex flex-col flex-1 min-w-0">
