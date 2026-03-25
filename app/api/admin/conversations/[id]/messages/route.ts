@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { sendToClient } from "@/app/api/sse/route"
 import { createMessage, getConversationById } from "@/lib/conversations"
+import { syncOperatorMessageToDiscord } from "@/lib/discord-bot"
 import { requireAdminSession } from "@/lib/server-auth"
 
 export const runtime = "nodejs"
@@ -31,6 +32,7 @@ export async function POST(
   }
 
   const message = await createMessage(conversationId, "operator", text)
+  await syncOperatorMessageToDiscord(conversationId, message)
 
   sendToClient(String(conversationId), message.body)
 

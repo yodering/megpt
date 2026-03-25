@@ -16,5 +16,15 @@ CREATE TABLE IF NOT EXISTS messages (
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS discord_threads (
+  "conversationId" INTEGER PRIMARY KEY REFERENCES conversations(id) ON DELETE CASCADE,
+  "threadId" TEXT NOT NULL UNIQUE,
+  "guildId" TEXT NOT NULL,
+  "channelId" TEXT NOT NULL,
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS messages_conversation_id_idx ON messages("conversationId");
 CREATE INDEX IF NOT EXISTS conversations_last_message_at_idx ON conversations("lastMessageAt");
+CREATE INDEX IF NOT EXISTS discord_threads_thread_id_idx ON discord_threads("threadId");

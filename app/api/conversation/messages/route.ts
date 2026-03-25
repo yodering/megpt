@@ -4,6 +4,7 @@ import {
   getConversationById,
   getOrCreateConversationForUser,
 } from "@/lib/conversations"
+import { syncUserMessageToDiscord } from "@/lib/discord-bot"
 import { requireSession } from "@/lib/server-auth"
 
 export const runtime = "nodejs"
@@ -36,6 +37,14 @@ export async function POST(req: NextRequest) {
 
   const message = await createMessage(conversation.id, "user", text)
   const updatedConversation = await getConversationById(conversation.id)
+  await syncUserMessageToDiscord(
+    {
+      id: conversation.id,
+      userEmail: conversation.userEmail,
+      userName: conversation.userName,
+    },
+    message
+  )
 
   return NextResponse.json({
     conversation: updatedConversation ?? conversation,

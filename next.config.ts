@@ -1,4 +1,5 @@
 const nextConfig = {
+  serverExternalPackages: ["discord.js", "@discordjs/ws", "zlib-sync"],
   async headers() {
     return [
       {

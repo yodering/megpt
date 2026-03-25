@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { AdminInbox } from "@/components/admin-inbox"
 import { getConversationForAdmin, listConversationsForAdmin } from "@/lib/conversations"
+import { ensureDiscordBot } from "@/lib/discord-bot"
 import { requireAdminSession } from "@/lib/server-auth"
 
 async function loadAdminData() {
@@ -23,6 +24,7 @@ async function loadAdminData() {
 }
 
 export default async function AdminPage() {
+  await ensureDiscordBot()
   const session = await requireAdminSession()
 
   if (!session) {

@@ -18,8 +18,9 @@ NEXTAUTH_SECRET=
 NEXTAUTH_URL=http://localhost:3000
 ADMIN_EMAIL=you@example.com
 DATABASE_URL=
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_CHAT_ID=
+DISCORD_BOT_TOKEN=
+DISCORD_GUILD_ID=
+DISCORD_PARENT_CHANNEL_ID=
 ```
 
 Google auth uses JWT sessions. `DATABASE_URL` is used for app data such as conversations and messages.
@@ -37,8 +38,9 @@ NEXTAUTH_SECRET=
 NEXTAUTH_URL=https://your-app.up.railway.app
 ADMIN_EMAIL=you@example.com
 DATABASE_URL=
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_CHAT_ID=
+DISCORD_BOT_TOKEN=
+DISCORD_GUILD_ID=
+DISCORD_PARENT_CHANNEL_ID=
 ```
 
 4. Redeploy the web service. The app will create its own conversation tables on first database use.
@@ -46,6 +48,21 @@ TELEGRAM_CHAT_ID=
 Railway usually injects a usable connection string after the services are linked. This project expects the standard `DATABASE_URL`.
 
 `ADMIN_EMAIL` is the only Google account allowed to access `/admin`.
+
+## Discord operator inbox
+
+The app now supports Discord as the operator surface while keeping Postgres as the source of truth.
+
+- Create a bot in the Discord Developer Portal.
+- Enable the `MESSAGE CONTENT INTENT` for the bot.
+- Invite the bot to your server with permission to view channels, send messages, create public threads, send messages in threads, and read message history.
+- Set `DISCORD_PARENT_CHANNEL_ID` to a normal text channel where the app should create one thread per conversation.
+
+Behavior:
+
+- User messages from the app are saved to Postgres and mirrored into a Discord thread.
+- Replies written in that Discord thread are saved back into Postgres and streamed to the user UI.
+- The app will auto-create the `discord_threads` table on first database use.
 
 ## Supabase cleanup
 
