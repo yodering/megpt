@@ -56,7 +56,7 @@ The app now supports Discord as the operator surface while keeping Postgres as t
 - Create a bot in the Discord Developer Portal.
 - Enable the `MESSAGE CONTENT INTENT` for the bot.
 - Invite the bot to your server with permission to view channels, send messages, create public threads, send messages in threads, and read message history.
-- Set `DISCORD_PARENT_CHANNEL_ID` to a normal text channel where the app should create one thread per conversation.
+- Set `DISCORD_PARENT_CHANNEL_ID` to a Discord forum channel if you want each conversation to appear as a visible post in a list. A normal text channel also works, but forum channels are usually a better operator inbox.
 
 Behavior:
 
