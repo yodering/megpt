@@ -128,19 +128,12 @@ async function findOrCreateThread(client: Client, conversation: ConversationIden
 async function syncThreadPresentation(
   thread: ThreadChannel,
   conversation: ConversationIdentity,
-  options?: { archive?: boolean; unarchiveReason?: string; archiveReason?: string }
+  options?: { unarchiveReason?: string }
 ) {
   const expectedName = buildThreadName(conversation)
 
   if (thread.name !== expectedName) {
     await thread.setName(expectedName, "Conversation status updated")
-  }
-
-  if (options?.archive) {
-    if (!thread.archived) {
-      await thread.setArchived(true, options.archiveReason ?? "Conversation waiting on user")
-    }
-    return
   }
 
   if (thread.archived) {
@@ -170,10 +163,7 @@ async function bindDiscordHandlers(client: Client) {
     if (!conversation) return
 
     const savedMessage = await createMessage(conversation.id, "operator", content)
-    await syncThreadPresentation(message.channel, conversation, {
-      archive: true,
-      archiveReason: "Operator replied in Discord",
-    })
+    await syncThreadPresentation(message.channel, conversation)
     sendToClient(String(conversation.id), savedMessage.body)
   })
 
@@ -262,10 +252,7 @@ export async function syncOperatorMessageToDiscord(
   const conversation = await getConversationById(conversationId)
   if (!conversation) return
 
-  await syncThreadPresentation(thread, conversation, {
-    archive: true,
-    archiveReason: "Operator reply sent to user",
-  })
+  await syncThreadPresentation(thread, conversation)
 
   await thread.send(formatOperatorMirror(message))
 }
