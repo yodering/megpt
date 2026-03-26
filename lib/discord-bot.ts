@@ -24,7 +24,6 @@ type ConversationIdentity = {
   id: number
   userEmail: string
   userName: string | null
-  status?: string
 }
 
 function getDiscordConfig() {
@@ -39,16 +38,10 @@ function getDiscordConfig() {
   return { token, guildId, parentChannelId }
 }
 
-function getThreadStatusLabel(status?: string) {
-  if (status === "awaiting_admin") return "needs-reply"
-  if (status === "awaiting_user") return "waiting-on-user"
-  return "active"
-}
-
 function buildThreadName(conversation: ConversationIdentity) {
   const identity = conversation.userName?.trim() || conversation.userEmail.trim()
-  const collapsed = identity.replace(/\s+/g, "-").toLowerCase().slice(0, 64)
-  return `${getThreadStatusLabel(conversation.status)} • ${collapsed} • #${conversation.id}`
+  const collapsed = identity.replace(/\s+/g, " ").slice(0, 72)
+  return `${collapsed} • #${conversation.id}`
 }
 
 function formatUserMessage(
@@ -105,10 +98,6 @@ async function findOrCreateThread(
   if (existing) {
     const channel = await client.channels.fetch(existing.threadId).catch(() => null)
     if (channel?.isThread()) {
-      const expectedName = buildThreadName(conversation)
-      if (channel.name !== expectedName) {
-        await channel.setName(expectedName, "Conversation status updated")
-      }
       return channel
     }
   }
@@ -134,15 +123,9 @@ async function findOrCreateThread(
 
 async function syncThreadPresentation(
   thread: ThreadChannel,
-  conversation: ConversationIdentity,
+  _conversation: ConversationIdentity,
   options?: { unarchiveReason?: string }
 ) {
-  const expectedName = buildThreadName(conversation)
-
-  if (thread.name !== expectedName) {
-    await thread.setName(expectedName, "Conversation status updated")
-  }
-
   if (thread.archived) {
     await thread.setArchived(false, options?.unarchiveReason ?? "Conversation reopened")
   }
@@ -230,16 +213,10 @@ export async function syncUserMessageToDiscord(
   const client = await ensureDiscordBot()
   if (!client) return
 
-  const thread = await findOrCreateThread(client, {
-    ...conversation,
-    status: "awaiting_admin",
-  })
+  const thread = await findOrCreateThread(client, conversation)
   if (!thread) return
 
-  await syncThreadPresentation(thread, {
-    ...conversation,
-    status: "awaiting_admin",
-  }, {
+  await syncThreadPresentation(thread, conversation, {
     unarchiveReason: "New user message",
   })
 
