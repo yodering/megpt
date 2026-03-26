@@ -24,6 +24,7 @@ type ConversationIdentity = {
   id: number
   userEmail: string
   userName: string | null
+  status?: string
 }
 
 function getDiscordConfig() {
@@ -38,10 +39,16 @@ function getDiscordConfig() {
   return { token, guildId, parentChannelId }
 }
 
+function getThreadStatusLabel(status?: string) {
+  if (status === "awaiting_admin") return "needs-reply"
+  if (status === "awaiting_user") return "waiting-on-user"
+  return "active"
+}
+
 function buildThreadName(conversation: ConversationIdentity) {
   const identity = conversation.userName?.trim() || conversation.userEmail.trim()
-  const collapsed = identity.replace(/\s+/g, " ").slice(0, 72)
-  return `${collapsed} • #${conversation.id}`
+  const collapsed = identity.replace(/\s+/g, "-").toLowerCase().slice(0, 64)
+  return `${getThreadStatusLabel(conversation.status)} • ${collapsed} • #${conversation.id}`
 }
 
 function formatUserMessage(
@@ -85,6 +92,10 @@ async function findOrCreateThread(client: Client, conversation: ConversationIden
   if (existing) {
     const channel = await client.channels.fetch(existing.threadId).catch(() => null)
     if (channel?.isThread()) {
+      const expectedName = buildThreadName(conversation)
+      if (channel.name !== expectedName) {
+        await channel.setName(expectedName, "Conversation status updated")
+      }
       return channel
     }
   }
@@ -114,6 +125,29 @@ async function findOrCreateThread(client: Client, conversation: ConversationIden
   return thread
 }
 
+async function syncThreadPresentation(
+  thread: ThreadChannel,
+  conversation: ConversationIdentity,
+  options?: { archive?: boolean; unarchiveReason?: string; archiveReason?: string }
+) {
+  const expectedName = buildThreadName(conversation)
+
+  if (thread.name !== expectedName) {
+    await thread.setName(expectedName, "Conversation status updated")
+  }
+
+  if (options?.archive) {
+    if (!thread.archived) {
+      await thread.setArchived(true, options.archiveReason ?? "Conversation waiting on user")
+    }
+    return
+  }
+
+  if (thread.archived) {
+    await thread.setArchived(false, options?.unarchiveReason ?? "Conversation reopened")
+  }
+}
+
 async function bindDiscordHandlers(client: Client) {
   if (globalThis.discordHandlersBound) return
 
@@ -136,6 +170,10 @@ async function bindDiscordHandlers(client: Client) {
     if (!conversation) return
 
     const savedMessage = await createMessage(conversation.id, "operator", content)
+    await syncThreadPresentation(message.channel, conversation, {
+      archive: true,
+      archiveReason: "Operator replied in Discord",
+    })
     sendToClient(String(conversation.id), savedMessage.body)
   })
 
@@ -197,9 +235,12 @@ export async function syncUserMessageToDiscord(
   const thread = await findOrCreateThread(client, conversation)
   if (!thread) return
 
-  if (thread.archived) {
-    await thread.setArchived(false, "New user message")
-  }
+  await syncThreadPresentation(thread, {
+    ...conversation,
+    status: "awaiting_admin",
+  }, {
+    unarchiveReason: "New user message",
+  })
 
   await thread.send(formatUserMessage(conversation, message))
 }
@@ -218,9 +259,13 @@ export async function syncOperatorMessageToDiscord(
   if (!channel?.isThread()) return
 
   const thread = channel as ThreadChannel
-  if (thread.archived) {
-    await thread.setArchived(false, "Operator reply")
-  }
+  const conversation = await getConversationById(conversationId)
+  if (!conversation) return
+
+  await syncThreadPresentation(thread, conversation, {
+    archive: true,
+    archiveReason: "Operator reply sent to user",
+  })
 
   await thread.send(formatOperatorMirror(message))
 }
