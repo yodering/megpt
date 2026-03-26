@@ -42,11 +42,7 @@ export async function POST(req: NextRequest) {
   const message = await createMessage(conversation.id, "user", text)
   const updatedConversation = await getConversationById(conversation.id)
   await syncUserMessageToDiscord(
-    {
-      id: conversation.id,
-      userEmail: conversation.userEmail,
-      userName: conversation.userName,
-    },
+    updatedConversation ?? conversation,
     message
   )
 

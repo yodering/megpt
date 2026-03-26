@@ -75,6 +75,21 @@ function formatOperatorMirror(message: ConversationMessage): MessageCreateOption
   }
 }
 
+function formatForumPostMessage(
+  conversation: ConversationIdentity,
+  message: ConversationMessage
+): MessageCreateOptions {
+  return {
+    content: [
+      `Conversation: #${conversation.id}`,
+      `User: ${conversation.userName || "Unknown"} <${conversation.userEmail}>`,
+      "",
+      message.body,
+    ].join("\n"),
+    allowedMentions: { parse: [] },
+  }
+}
+
 function formatThreadOpenedMessage(conversation: ConversationIdentity): MessageCreateOptions {
   return {
     content: [
@@ -104,7 +119,11 @@ async function getParentChannel(client: Client, parentChannelId: string) {
   return channel as TextChannel | ForumChannel
 }
 
-async function findOrCreateThread(client: Client, conversation: ConversationIdentity) {
+async function findOrCreateThread(
+  client: Client,
+  conversation: ConversationIdentity,
+  initialMessage?: ConversationMessage
+) {
   const config = getDiscordConfig()
   if (!config) return null
 
@@ -127,7 +146,9 @@ async function findOrCreateThread(client: Client, conversation: ConversationIden
           name: buildThreadName(conversation),
           autoArchiveDuration: 1440,
           reason: `Conversation #${conversation.id}`,
-          message: formatThreadOpenedMessage(conversation),
+          message: initialMessage
+            ? formatForumPostMessage(conversation, initialMessage)
+            : formatThreadOpenedMessage(conversation),
         })
       : await parentChannel.threads.create({
           name: buildThreadName(conversation),
@@ -187,7 +208,8 @@ async function bindDiscordHandlers(client: Client) {
     if (!conversation) return
 
     const savedMessage = await createMessage(conversation.id, "operator", content)
-    await syncThreadPresentation(message.channel, conversation)
+    const updatedConversation = await getConversationById(conversation.id)
+    await syncThreadPresentation(message.channel, updatedConversation ?? conversation)
     sendToClient(String(conversation.id), savedMessage.body)
   })
 
@@ -246,7 +268,14 @@ export async function syncUserMessageToDiscord(
   const client = await ensureDiscordBot()
   if (!client) return
 
-  const thread = await findOrCreateThread(client, conversation)
+  const thread = await findOrCreateThread(
+    client,
+    {
+      ...conversation,
+      status: "awaiting_admin",
+    },
+    message
+  )
   if (!thread) return
 
   await syncThreadPresentation(thread, {
@@ -256,7 +285,12 @@ export async function syncUserMessageToDiscord(
     unarchiveReason: "New user message",
   })
 
-  await thread.send(formatUserMessage(conversation, message))
+  if (
+    thread.parent?.type !== ChannelType.GuildForum ||
+    (thread.totalMessageSent ?? 0) > 1
+  ) {
+    await thread.send(formatUserMessage(conversation, message))
+  }
 }
 
 export async function syncOperatorMessageToDiscord(
