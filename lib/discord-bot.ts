@@ -269,3 +269,16 @@ export async function syncOperatorMessageToDiscord(
 
   await thread.send(formatOperatorMirror(message))
 }
+
+export async function deleteDiscordThreadForConversation(conversationId: number) {
+  const client = await ensureDiscordBot()
+  if (!client) return
+
+  const mapping = await getDiscordThreadByConversationId(conversationId)
+  if (!mapping) return
+
+  const channel = await client.channels.fetch(mapping.threadId).catch(() => null)
+  if (!channel?.isThread()) return
+
+  await channel.delete(`Conversation #${conversationId} deleted from MeGPT`)
+}

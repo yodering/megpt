@@ -194,6 +194,22 @@ export async function getConversationByIdForUser(
   return result.rows[0] ?? null
 }
 
+export async function deleteConversationForUser(
+  conversationId: number,
+  userEmail: string
+) {
+  await ensureAppSchema()
+  const pool = getDbPool()
+  const result = await pool.query<{ id: number }>(
+    `DELETE FROM conversations
+     WHERE id = $1 AND "userEmail" = $2
+     RETURNING id`,
+    [conversationId, userEmail]
+  )
+
+  return (result.rowCount ?? 0) > 0
+}
+
 export async function listConversationsForUser(userEmail: string) {
   await ensureAppSchema()
   const pool = getDbPool()

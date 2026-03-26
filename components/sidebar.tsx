@@ -8,6 +8,7 @@ import {
   Sparkles,
   Heart,
   PanelLeftClose,
+  Trash2,
 } from "lucide-react"
 import { useSession, signIn } from "next-auth/react"
 
@@ -31,6 +32,7 @@ interface SidebarProps {
   activeConversationId?: number | null
   onSelectConversation?: (conversationId: number) => void
   onNewChat?: () => void
+  onDeleteConversation?: (conversationId: number) => void
 }
 
 export function Sidebar({
@@ -40,6 +42,7 @@ export function Sidebar({
   activeConversationId,
   onSelectConversation,
   onNewChat,
+  onDeleteConversation,
 }: SidebarProps) {
   const { data: session } = useSession()
 
@@ -104,22 +107,32 @@ export function Sidebar({
           </p>
           <div className="space-y-2">
             {conversations.map((conversation) => (
-              <button
-                key={conversation.id}
-                onClick={() => onSelectConversation?.(conversation.id)}
-                className={`w-full rounded-2xl border px-3 py-3 text-left transition-colors ${
-                  activeConversationId === conversation.id
-                    ? "border-[#d8d8d8] bg-white"
-                    : "border-[#e5e5e5] bg-white hover:bg-[#fcfcfc]"
-                }`}
-              >
-                <p className="truncate text-sm font-medium text-[#0d0d0d]">
-                  {conversation.title}
-                </p>
-                <p className="mt-1 line-clamp-2 text-xs text-[#6e6e6e]">
-                  {conversation.preview || "No messages yet"}
-                </p>
-              </button>
+              <div key={conversation.id} className="relative">
+                <button
+                  onClick={() => onSelectConversation?.(conversation.id)}
+                  className={`w-full rounded-2xl border px-3 py-3 pr-11 text-left transition-colors ${
+                    activeConversationId === conversation.id
+                      ? "border-[#d8d8d8] bg-white"
+                      : "border-[#e5e5e5] bg-white hover:bg-[#fcfcfc]"
+                  }`}
+                >
+                  <p className="truncate text-sm font-medium text-[#0d0d0d]">
+                    {conversation.title}
+                  </p>
+                  <p className="mt-1 line-clamp-2 text-xs text-[#6e6e6e]">
+                    {conversation.preview || "No messages yet"}
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDeleteConversation?.(conversation.id)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-2 text-[#8a8a8a] transition-colors hover:bg-[#f1f1f1] hover:text-[#222]"
+                  aria-label="Delete chat"
+                  title="Delete chat"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             ))}
           </div>
         </div>

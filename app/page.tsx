@@ -181,6 +181,35 @@ export default function Home() {
     setIsLoading(false)
   }
 
+  async function handleDeleteConversation(conversationToDeleteId: number) {
+    if (!session) return
+
+    const response = await fetch(`/api/conversation/${conversationToDeleteId}`, {
+      method: "DELETE",
+    })
+
+    if (!response.ok) return
+
+    const data = await response.json()
+    const remainingConversations = data.conversations as ConversationSummary[]
+    const nextConversationId =
+      conversationId === conversationToDeleteId
+        ? (remainingConversations[0]?.id ?? null)
+        : conversationId
+
+    setConversations(remainingConversations)
+
+    if (!nextConversationId) {
+      setConversationId(null)
+      setConversation(null)
+      setMessages([])
+      setIsLoading(false)
+      return
+    }
+
+    await handleSelectConversation(nextConversationId)
+  }
+
   return (
     <div className="flex h-screen bg-white">
       <Sidebar
@@ -190,6 +219,7 @@ export default function Home() {
         activeConversationId={conversationId}
         onSelectConversation={handleSelectConversation}
         onNewChat={handleNewChat}
+        onDeleteConversation={handleDeleteConversation}
       />
 
       <div className="flex flex-col flex-1 min-w-0">
