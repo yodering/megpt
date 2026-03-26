@@ -1,7 +1,6 @@
 import {
   ChannelType,
   Client,
-  ForumChannel,
   GatewayIntentBits,
   type MessageCreateOptions,
   type TextChannel,
@@ -75,21 +74,6 @@ function formatOperatorMirror(message: ConversationMessage): MessageCreateOption
   }
 }
 
-function formatForumPostMessage(
-  conversation: ConversationIdentity,
-  message: ConversationMessage
-): MessageCreateOptions {
-  return {
-    content: [
-      `Conversation: #${conversation.id}`,
-      `User: ${conversation.userName || "Unknown"} <${conversation.userEmail}>`,
-      "",
-      message.body,
-    ].join("\n"),
-    allowedMentions: { parse: [] },
-  }
-}
-
 function formatThreadOpenedMessage(conversation: ConversationIdentity): MessageCreateOptions {
   return {
     content: [
@@ -103,26 +87,16 @@ function formatThreadOpenedMessage(conversation: ConversationIdentity): MessageC
 async function getParentChannel(client: Client, parentChannelId: string) {
   const channel = await client.channels.fetch(parentChannelId)
 
-  if (!channel) {
-    throw new Error("DISCORD_PARENT_CHANNEL_ID does not exist")
+  if (!channel || channel.type !== ChannelType.GuildText) {
+    throw new Error("DISCORD_PARENT_CHANNEL_ID must point to a text channel")
   }
 
-  if (
-    channel.type !== ChannelType.GuildText &&
-    channel.type !== ChannelType.GuildForum
-  ) {
-    throw new Error(
-      "DISCORD_PARENT_CHANNEL_ID must point to a text or forum channel"
-    )
-  }
-
-  return channel as TextChannel | ForumChannel
+  return channel as TextChannel
 }
 
 async function findOrCreateThread(
   client: Client,
-  conversation: ConversationIdentity,
-  initialMessage?: ConversationMessage
+  conversation: ConversationIdentity
 ) {
   const config = getDiscordConfig()
   if (!config) return null
@@ -140,21 +114,11 @@ async function findOrCreateThread(
   }
 
   const parentChannel = await getParentChannel(client, config.parentChannelId)
-  const thread =
-    parentChannel.type === ChannelType.GuildForum
-      ? await parentChannel.threads.create({
-          name: buildThreadName(conversation),
-          autoArchiveDuration: 1440,
-          reason: `Conversation #${conversation.id}`,
-          message: initialMessage
-            ? formatForumPostMessage(conversation, initialMessage)
-            : formatThreadOpenedMessage(conversation),
-        })
-      : await parentChannel.threads.create({
-          name: buildThreadName(conversation),
-          autoArchiveDuration: 1440,
-          reason: `Conversation #${conversation.id}`,
-        })
+  const thread = await parentChannel.threads.create({
+    name: buildThreadName(conversation),
+    autoArchiveDuration: 1440,
+    reason: `Conversation #${conversation.id}`,
+  })
 
   await upsertDiscordThread({
     conversationId: conversation.id,
@@ -163,9 +127,7 @@ async function findOrCreateThread(
     channelId: parentChannel.id,
   })
 
-  if (parentChannel.type !== ChannelType.GuildForum) {
-    await thread.send(formatThreadOpenedMessage(conversation))
-  }
+  await thread.send(formatThreadOpenedMessage(conversation))
 
   return thread
 }
@@ -268,14 +230,10 @@ export async function syncUserMessageToDiscord(
   const client = await ensureDiscordBot()
   if (!client) return
 
-  const thread = await findOrCreateThread(
-    client,
-    {
-      ...conversation,
-      status: "awaiting_admin",
-    },
-    message
-  )
+  const thread = await findOrCreateThread(client, {
+    ...conversation,
+    status: "awaiting_admin",
+  })
   if (!thread) return
 
   await syncThreadPresentation(thread, {
@@ -285,12 +243,7 @@ export async function syncUserMessageToDiscord(
     unarchiveReason: "New user message",
   })
 
-  if (
-    thread.parent?.type !== ChannelType.GuildForum ||
-    (thread.totalMessageSent ?? 0) > 1
-  ) {
-    await thread.send(formatUserMessage(conversation, message))
-  }
+  await thread.send(formatUserMessage(conversation, message))
 }
 
 export async function syncOperatorMessageToDiscord(
