@@ -15,6 +15,8 @@ export type ConversationMessage = {
   conversationId: number
   senderType: "user" | "operator"
   body: string
+  contentType: "text" | "image"
+  imageUrl: string | null
   createdAt: string
 }
 
@@ -100,6 +102,8 @@ export async function listMessagesForConversation(conversationId: number) {
        "conversationId" AS "conversationId",
        "senderType" AS "senderType",
        body,
+       "contentType" AS "contentType",
+       "imageUrl" AS "imageUrl",
        "createdAt" AS "createdAt"
      FROM messages
      WHERE "conversationId" = $1
@@ -113,21 +117,29 @@ export async function listMessagesForConversation(conversationId: number) {
 export async function createMessage(
   conversationId: number,
   senderType: "user" | "operator",
-  body: string
+  body: string,
+  options?: {
+    contentType?: "text" | "image"
+    imageUrl?: string | null
+  }
 ) {
   await ensureAppSchema()
   const pool = getDbPool()
+  const contentType = options?.contentType ?? "text"
+  const imageUrl = options?.imageUrl ?? null
 
   const inserted = await pool.query<ConversationMessage>(
-    `INSERT INTO messages ("conversationId", "senderType", body)
-     VALUES ($1, $2, $3)
+    `INSERT INTO messages ("conversationId", "senderType", body, "contentType", "imageUrl")
+     VALUES ($1, $2, $3, $4, $5)
      RETURNING
        id,
        "conversationId" AS "conversationId",
        "senderType" AS "senderType",
        body,
+       "contentType" AS "contentType",
+       "imageUrl" AS "imageUrl",
        "createdAt" AS "createdAt"`,
-    [conversationId, senderType, body]
+    [conversationId, senderType, body, contentType, imageUrl]
   )
 
   const nextStatus = senderType === "user" ? "awaiting_admin" : "awaiting_user"
@@ -221,7 +233,7 @@ export async function listConversationsForUser(userEmail: string) {
        c.status,
        c."lastMessageAt" AS "lastMessageAt",
        (
-         SELECT m.body
+         SELECT COALESCE(NULLIF(m.body, ''), CASE WHEN m."contentType" = 'image' THEN '[Image]' END)
          FROM messages m
          WHERE m."conversationId" = c.id
          ORDER BY m."createdAt" DESC, m.id DESC
@@ -237,4 +249,29 @@ export async function listConversationsForUser(userEmail: string) {
   )
 
   return result.rows
+}
+
+export async function countAwaitingAdminConversations() {
+  await ensureAppSchema()
+  const pool = getDbPool()
+  const result = await pool.query<{ count: string }>(
+    `SELECT COUNT(*)::text AS count
+     FROM conversations
+     WHERE status = 'awaiting_admin'`
+  )
+
+  return Number(result.rows[0]?.count ?? 0)
+}
+
+export async function countAwaitingAdminConversationsForUser(userEmail: string) {
+  await ensureAppSchema()
+  const pool = getDbPool()
+  const result = await pool.query<{ count: string }>(
+    `SELECT COUNT(*)::text AS count
+     FROM conversations
+     WHERE status = 'awaiting_admin' AND "userEmail" = $1`,
+    [userEmail]
+  )
+
+  return Number(result.rows[0]?.count ?? 0)
 }

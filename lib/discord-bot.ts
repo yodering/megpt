@@ -140,15 +140,35 @@ async function bindDiscordHandlers(client: Client) {
     if (!mapping) return
 
     const content = message.content.trim()
-    if (!content) return
+    const imageAttachments = [...message.attachments.values()].filter((attachment) =>
+      attachment.contentType?.startsWith("image/")
+    )
+    if (!content && imageAttachments.length === 0) return
 
     const conversation = await getConversationById(mapping.conversationId)
     if (!conversation) return
 
-    const savedMessage = await createMessage(conversation.id, "operator", content)
+    const savedMessages: ConversationMessage[] = []
+
+    if (content) {
+      savedMessages.push(await createMessage(conversation.id, "operator", content))
+    }
+
+    for (const attachment of imageAttachments) {
+      savedMessages.push(
+        await createMessage(conversation.id, "operator", "", {
+          contentType: "image",
+          imageUrl: attachment.url,
+        })
+      )
+    }
+
     const updatedConversation = await getConversationById(conversation.id)
     await syncThreadPresentation(message.channel, updatedConversation ?? conversation)
-    sendToClient(String(conversation.id), savedMessage.body)
+
+    for (const savedMessage of savedMessages) {
+      sendToClient(String(conversation.id), savedMessage)
+    }
   })
 
   globalThis.discordHandlersBound = true

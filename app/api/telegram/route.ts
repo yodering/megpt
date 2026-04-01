@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { sendToClient } from "@/app/api/sse/route"
+import type { ConversationMessage } from "@/lib/conversations"
 
 const TELEGRAM_API = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`
 
@@ -24,7 +25,15 @@ export async function POST(req: NextRequest) {
     const match = text.match(/^(.+?):\s([\s\S]+)$/)
     if (match) {
       const [, conversationId, message] = match
-      sendToClient(conversationId.trim(), message.trim())
+      sendToClient(conversationId.trim(), {
+        id: 0,
+        conversationId: Number(conversationId.trim()) || 0,
+        senderType: "operator",
+        body: message.trim(),
+        contentType: "text",
+        imageUrl: null,
+        createdAt: new Date().toISOString(),
+      } satisfies ConversationMessage)
     }
     return NextResponse.json({ ok: true })
   }

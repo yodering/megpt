@@ -20,6 +20,8 @@ DATABASE_URL=
 DISCORD_BOT_TOKEN=
 DISCORD_GUILD_ID=
 DISCORD_PARENT_CHANNEL_ID=
+MAX_PENDING_CONVERSATIONS=20
+MAX_PENDING_CONVERSATIONS_PER_USER=1
 ```
 
 Google auth uses JWT sessions. `DATABASE_URL` is used for app data such as conversations and messages.
@@ -39,11 +41,18 @@ DATABASE_URL=
 DISCORD_BOT_TOKEN=
 DISCORD_GUILD_ID=
 DISCORD_PARENT_CHANNEL_ID=
+MAX_PENDING_CONVERSATIONS=20
+MAX_PENDING_CONVERSATIONS_PER_USER=1
 ```
 
 4. Redeploy the web service. The app will create its own conversation tables on first database use.
 
 Railway usually injects a usable connection string after the services are linked. This project expects the standard `DATABASE_URL`.
+
+Optional reply-capacity controls:
+
+- `MAX_PENDING_CONVERSATIONS`: total conversations allowed in `awaiting_admin` before new messages are rejected
+- `MAX_PENDING_CONVERSATIONS_PER_USER`: max conversations one user can have waiting for a reply
 
 ## Discord operator inbox
 
@@ -58,6 +67,7 @@ Behavior:
 
 - User messages from the app are saved to Postgres and mirrored into a Discord thread.
 - Replies written in that Discord thread are saved back into Postgres and streamed to the user UI.
+- Image attachments in Discord replies are saved back into Postgres and displayed inline in the user UI.
 - The app will auto-create the `discord_threads` table on first database use.
 
 ## Supabase cleanup

@@ -7,6 +7,8 @@ import { ShimmerText } from "@/components/ui/shimmer-text"
 interface Message {
   role: string
   content: string
+  contentType?: "text" | "image"
+  imageUrl?: string | null
   isNew?: boolean
 }
 
@@ -36,11 +38,20 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
             ) : (
               <div className="flex justify-start">
                 <div className="max-w-[85%] text-[#0d0d0d] leading-relaxed">
-                  {msg.isNew ? (
+                  {msg.contentType === "image" && msg.imageUrl ? (
+                    <img
+                      src={msg.imageUrl}
+                      alt={msg.content || "Operator reply image"}
+                      className="max-h-[28rem] rounded-2xl border border-[#e5e5e5] object-cover"
+                    />
+                  ) : msg.isNew ? (
                     <BlurRevealWord text={msg.content} />
                   ) : (
                     msg.content
                   )}
+                  {msg.contentType === "image" && msg.content ? (
+                    <p className="mt-3 text-sm text-[#4f4f4f]">{msg.content}</p>
+                  ) : null}
                 </div>
               </div>
             )}

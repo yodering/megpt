@@ -48,6 +48,8 @@ export async function ensureAppSchema() {
           "conversationId" INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
           "senderType" VARCHAR(32) NOT NULL,
           body TEXT NOT NULL,
+          "contentType" VARCHAR(32) NOT NULL DEFAULT 'text',
+          "imageUrl" TEXT,
           "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
 
@@ -69,6 +71,16 @@ export async function ensureAppSchema() {
       await pool.query(`
         ALTER TABLE conversations
         DROP CONSTRAINT IF EXISTS "conversations_userEmail_key";
+      `)
+
+      await pool.query(`
+        ALTER TABLE messages
+        ADD COLUMN IF NOT EXISTS "contentType" VARCHAR(32) NOT NULL DEFAULT 'text';
+      `)
+
+      await pool.query(`
+        ALTER TABLE messages
+        ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;
       `)
     })().catch((error) => {
       globalThis.appSchemaReady = undefined

@@ -12,7 +12,16 @@ import { HeroPrompt } from "@/components/hero-prompt"
 interface Message {
   role: string
   content: string
+  contentType?: "text" | "image"
+  imageUrl?: string | null
   isNew?: boolean
+}
+
+interface ConversationMessagePayload {
+  senderType: string
+  body: string
+  contentType?: "text" | "image"
+  imageUrl?: string | null
 }
 
 interface Conversation {
@@ -30,6 +39,7 @@ export default function Home() {
   const { data: session } = useSession()
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [composerNotice, setComposerNotice] = useState<string | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [conversationId, setConversationId] = useState<number | null>(null)
   const [conversation, setConversation] = useState<Conversation | null>(null)
@@ -45,6 +55,16 @@ export default function Home() {
     preview: item.lastMessageBody,
   }))
 
+  function toUiMessage(message: ConversationMessagePayload, isNew = false): Message {
+    return {
+      role: message.senderType === "user" ? "user" : "assistant",
+      content: message.body,
+      contentType: message.contentType ?? "text",
+      imageUrl: message.imageUrl ?? null,
+      isNew,
+    }
+  }
+
   useEffect(() => {
     if (!session) return
 
@@ -53,15 +73,11 @@ export default function Home() {
       const response = await fetch(`/api/conversation${search}`, { cache: "no-store" })
       if (!response.ok) return
       const data = await response.json()
+      setComposerNotice(null)
       setConversations(data.conversations)
       setConversationId(data.activeConversation?.id ?? null)
       setConversation(data.activeConversation)
-      setMessages(
-        data.messages.map((message: { senderType: string; body: string }) => ({
-          role: message.senderType === "user" ? "user" : "assistant",
-          content: message.body,
-        }))
-      )
+      setMessages(data.messages.map((message: ConversationMessagePayload) => toUiMessage(message)))
     }
 
     loadConversation()
@@ -73,10 +89,7 @@ export default function Home() {
     const es = new EventSource(`/api/sse?conversationId=${conversationId}`)
     es.onmessage = (e) => {
       const data = JSON.parse(e.data)
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: data.message, isNew: true },
-      ])
+      setMessages((prev) => [...prev, toUiMessage(data.message, true)])
       setConversation((prev) =>
         prev
           ? {
@@ -85,6 +98,7 @@ export default function Home() {
             }
           : prev
       )
+      setComposerNotice(null)
       setIsLoading(false)
     }
 
@@ -99,6 +113,7 @@ export default function Home() {
 
     setMessages((prev) => [...prev, { role: "user", content: text }])
     setIsLoading(true)
+    setComposerNotice(null)
 
     const response = await fetch("/api/conversation/messages", {
       method: "POST",
@@ -107,6 +122,7 @@ export default function Home() {
     })
 
     if (!response.ok) {
+      const data = await response.json().catch(() => null)
       setIsLoading(false)
       if (response.status === 409) {
         setConversation((prev) =>
@@ -118,11 +134,17 @@ export default function Home() {
             : prev
         )
       }
+      setComposerNotice(
+        typeof data?.error === "string"
+          ? data.error
+          : "Your message could not be sent right now."
+      )
       setMessages((prev) => prev.slice(0, -1))
       return
     }
 
     const data = await response.json()
+    setComposerNotice(null)
     setConversation(data.conversation)
     setConversationId(data.conversation.id)
     setConversations((prev) => {
@@ -153,6 +175,7 @@ export default function Home() {
     if (!response.ok) return
 
     const data = await response.json()
+    setComposerNotice(null)
     setConversations(data.conversations)
     setConversationId(data.conversation.id)
     setConversation(data.conversation)
@@ -169,15 +192,11 @@ export default function Home() {
     if (!response.ok) return
 
     const data = await response.json()
+    setComposerNotice(null)
     setConversations(data.conversations)
     setConversationId(data.activeConversation?.id ?? null)
     setConversation(data.activeConversation)
-    setMessages(
-      data.messages.map((message: { senderType: string; body: string }) => ({
-        role: message.senderType === "user" ? "user" : "assistant",
-        content: message.body,
-      }))
-    )
+    setMessages(data.messages.map((message: ConversationMessagePayload) => toUiMessage(message)))
     setIsLoading(false)
   }
 
@@ -233,7 +252,9 @@ export default function Home() {
                 onSend={handleSend}
                 disabled={inputDisabled}
                 placeholder={isAwaitingReply ? "MeGPT is still working..." : "Ask anything"}
-                helperText="MeGPT can make mistakes. Check important info."
+                helperText={
+                  composerNotice ?? "MeGPT can make mistakes. Check important info."
+                }
               />
               <FooterDisclosure />
             </div>
@@ -246,7 +267,9 @@ export default function Home() {
                 onSend={handleSend}
                 disabled={inputDisabled}
                 placeholder={isAwaitingReply ? "MeGPT is still working..." : "Ask anything"}
-                helperText="MeGPT can make mistakes. Check important info."
+                helperText={
+                  composerNotice ?? "MeGPT can make mistakes. Check important info."
+                }
               />
               <FooterDisclosure />
             </div>

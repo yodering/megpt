@@ -1,9 +1,10 @@
 import { NextRequest } from "next/server"
+import type { ConversationMessage } from "@/lib/conversations"
 
 // Store active connections: conversationId -> controller
 const clients = new Map<string, ReadableStreamDefaultController>()
 
-export function sendToClient(conversationId: string, message: string) {
+export function sendToClient(conversationId: string, message: ConversationMessage) {
   const controller = clients.get(conversationId)
   if (controller) {
     controller.enqueue(`data: ${JSON.stringify({ message })}\n\n`)
