@@ -60,13 +60,6 @@ function formatUserMessage(
   }
 }
 
-function formatOperatorMirror(message: ConversationMessage): MessageCreateOptions {
-  return {
-    content: `Operator reply sent to user:\n\n${message.body}`,
-    allowedMentions: { parse: [] },
-  }
-}
-
 function formatThreadOpenedMessage(conversation: ConversationIdentity): MessageCreateOptions {
   return {
     content: [
@@ -221,28 +214,6 @@ export async function syncUserMessageToDiscord(
   })
 
   await thread.send(formatUserMessage(conversation, message))
-}
-
-export async function syncOperatorMessageToDiscord(
-  conversationId: number,
-  message: ConversationMessage
-) {
-  const client = await ensureDiscordBot()
-  if (!client) return
-
-  const mapping = await getDiscordThreadByConversationId(conversationId)
-  if (!mapping) return
-
-  const channel = await client.channels.fetch(mapping.threadId).catch(() => null)
-  if (!channel?.isThread()) return
-
-  const thread = channel as ThreadChannel
-  const conversation = await getConversationById(conversationId)
-  if (!conversation) return
-
-  await syncThreadPresentation(thread, conversation)
-
-  await thread.send(formatOperatorMirror(message))
 }
 
 export async function deleteDiscordThreadForConversation(conversationId: number) {

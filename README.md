@@ -16,7 +16,6 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 NEXTAUTH_SECRET=
 NEXTAUTH_URL=http://localhost:3000
-ADMIN_EMAIL=you@example.com
 DATABASE_URL=
 DISCORD_BOT_TOKEN=
 DISCORD_GUILD_ID=
@@ -36,7 +35,6 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 NEXTAUTH_SECRET=
 NEXTAUTH_URL=https://your-app.up.railway.app
-ADMIN_EMAIL=you@example.com
 DATABASE_URL=
 DISCORD_BOT_TOKEN=
 DISCORD_GUILD_ID=
@@ -46,8 +44,6 @@ DISCORD_PARENT_CHANNEL_ID=
 4. Redeploy the web service. The app will create its own conversation tables on first database use.
 
 Railway usually injects a usable connection string after the services are linked. This project expects the standard `DATABASE_URL`.
-
-`ADMIN_EMAIL` is the only Google account allowed to access `/admin`.
 
 ## Discord operator inbox
 

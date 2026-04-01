@@ -1,10 +1,6 @@
 import type { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 
-export function isAdminEmail(email?: string | null) {
-  return Boolean(email && process.env.ADMIN_EMAIL && email === process.env.ADMIN_EMAIL)
-}
-
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -22,7 +18,6 @@ export const authOptions: NextAuthOptions = {
         if (userId) {
           session.user.id = String(userId)
         }
-        session.user.isAdmin = isAdminEmail(session.user.email)
       }
       return session
     },

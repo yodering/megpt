@@ -11,7 +11,6 @@ GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 NEXTAUTH_SECRET=...
 NEXTAUTH_URL=https://megpt.boo
-ADMIN_EMAIL=your-google-email@example.com
 DATABASE_URL=...
 ```
 
@@ -76,10 +75,4 @@ If login fails, check these first:
 
 ## What the current code expects
 
-Admin access is controlled by `ADMIN_EMAIL`.
-
-That means:
-
-- Google login can work for any allowed Google account
-- `/admin` is only available to the email stored in `ADMIN_EMAIL`
-- Railway Postgres is used for conversations and messages, not for NextAuth account/session tables
+Google login can work for any allowed Google account, and Railway Postgres is used for conversations and messages, not for NextAuth account/session tables.
