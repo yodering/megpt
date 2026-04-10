@@ -10,7 +10,7 @@ import {
   PanelLeftClose,
   Trash2,
 } from "lucide-react"
-import { useSession, signIn } from "next-auth/react"
+import { useSession } from "next-auth/react"
 
 const navItems = [
   { icon: Plus, label: "New chat" },
@@ -147,17 +147,11 @@ export function Sidebar({
           <>
             <div className="bg-white rounded-xl p-3 mb-3 border border-[#e5e5e5]">
               <p className="text-sm text-[#0d0d0d] font-medium mb-1">
-                Get responses tailored to you
+                Use guest mode instantly
               </p>
               <p className="text-xs text-[#6e6e6e] mb-2">
-                Log in to get smarter responses
+                Guest chats expire automatically after a short time. Log in if you want chat history.
               </p>
-              <button
-                onClick={() => signIn("google")}
-                className="w-full py-2 px-3 bg-[#0d0d0d] text-white text-sm rounded-full hover:bg-[#2d2d2d] transition-colors"
-              >
-                Log in
-              </button>
             </div>
           </>
         )}

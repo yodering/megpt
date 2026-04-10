@@ -222,6 +222,42 @@ export async function deleteConversationForUser(
   return (result.rowCount ?? 0) > 0
 }
 
+export async function deleteConversationsForUser(
+  userEmail: string,
+  options?: {
+    patternMatch?: boolean
+    updatedBefore?: Date
+  }
+) {
+  await ensureAppSchema()
+  const pool = getDbPool()
+  const updatedBefore = options?.updatedBefore
+  const patternMatch = options?.patternMatch ?? false
+  const result = await pool.query<{ id: number }>(
+    `DELETE FROM conversations
+     WHERE "userEmail" ${patternMatch ? "LIKE" : "="} $1
+       ${updatedBefore ? `AND "updatedAt" < $2` : ""}
+     RETURNING id`,
+    updatedBefore ? [userEmail, updatedBefore] : [userEmail]
+  )
+
+  return result.rows.map((row) => row.id)
+}
+
+export async function listConversationIdsForGuestUsersLastUpdatedBefore(updatedBefore: Date) {
+  await ensureAppSchema()
+  const pool = getDbPool()
+  const result = await pool.query<{ id: number }>(
+    `SELECT id
+     FROM conversations
+     WHERE "userEmail" LIKE 'guest:%'
+       AND "updatedAt" < $1`,
+    [updatedBefore]
+  )
+
+  return result.rows.map((row) => row.id)
+}
+
 export async function listConversationsForUser(userEmail: string) {
   await ensureAppSchema()
   const pool = getDbPool()

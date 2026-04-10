@@ -33,15 +33,9 @@ export function ChatHeader() {
           <>
             <button
               onClick={() => signIn("google")}
-              className="text-sm bg-[#0d0d0d] text-white px-4 py-2 rounded-full hover:bg-[#2d2d2d] transition-colors"
-            >
-              Log in
-            </button>
-            <button
-              onClick={() => signIn("google")}
               className="text-sm border border-[#d1d1d1] text-[#0d0d0d] px-4 py-2 rounded-full hover:bg-[#f5f5f5] transition-colors"
             >
-              Sign up for free
+              Log in
             </button>
           </>
         )}

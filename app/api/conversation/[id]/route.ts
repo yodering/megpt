@@ -5,7 +5,8 @@ import {
   getConversationByIdForUser,
   listConversationsForUser,
 } from "@/lib/conversations"
-import { requireSession } from "@/lib/server-auth"
+import { cleanupExpiredGuestConversations } from "@/lib/guest-conversations"
+import { getRequestIdentity } from "@/lib/request-identity"
 
 export const runtime = "nodejs"
 
@@ -14,10 +15,14 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   await ensureDiscordBot()
-  const session = await requireSession()
+  const identity = await getRequestIdentity(_req)
 
-  if (!session?.user?.email) {
+  if (!identity) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  if (identity.isGuest) {
+    await cleanupExpiredGuestConversations()
   }
 
   const { id } = await params
@@ -29,7 +34,7 @@ export async function DELETE(
 
   const conversation = await getConversationByIdForUser(
     conversationId,
-    session.user.email
+    identity.userEmail
   )
 
   if (!conversation) {
@@ -38,13 +43,13 @@ export async function DELETE(
 
   await deleteDiscordThreadForConversation(conversationId)
 
-  const deleted = await deleteConversationForUser(conversationId, session.user.email)
+  const deleted = await deleteConversationForUser(conversationId, identity.userEmail)
 
   if (!deleted) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  const conversations = await listConversationsForUser(session.user.email)
+  const conversations = await listConversationsForUser(identity.userEmail)
 
   return NextResponse.json({ ok: true, conversations })
 }

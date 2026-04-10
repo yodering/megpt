@@ -8,7 +8,9 @@ import {
   getOrCreateConversationForUser,
 } from "@/lib/conversations"
 import { syncUserMessageToDiscord } from "@/lib/discord-bot"
-import { requireSession } from "@/lib/server-auth"
+import { cleanupExpiredGuestConversations } from "@/lib/guest-conversations"
+import { MESSAGE_MAX_CHARS } from "@/lib/message-limit"
+import { getRequestIdentity } from "@/lib/request-identity"
 
 export const runtime = "nodejs"
 
@@ -18,10 +20,14 @@ const MAX_PENDING_CONVERSATIONS_PER_USER = Number(
 )
 
 export async function POST(req: NextRequest) {
-  const session = await requireSession()
+  const identity = await getRequestIdentity(req)
 
-  if (!session?.user?.email) {
+  if (!identity) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  if (identity.isGuest) {
+    await cleanupExpiredGuestConversations()
   }
 
   const body = await req.json()
@@ -33,11 +39,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No text" }, { status: 400 })
   }
 
+  if (text.length > MESSAGE_MAX_CHARS) {
+    return NextResponse.json(
+      { error: `Messages must be ${MESSAGE_MAX_CHARS} characters or fewer.` },
+      { status: 400 }
+    )
+  }
+
   const conversation =
     (conversationId
-      ? await getConversationByIdForUser(conversationId, session.user.email)
+      ? await getConversationByIdForUser(conversationId, identity.userEmail)
       : null) ??
-    (await getOrCreateConversationForUser(session.user.email, session.user.name))
+    (await getOrCreateConversationForUser(identity.userEmail, identity.userName))
 
   if (conversation.status === "awaiting_admin") {
     return NextResponse.json(
@@ -47,7 +60,7 @@ export async function POST(req: NextRequest) {
   }
 
   const [pendingForUser, pendingGlobal] = await Promise.all([
-    countAwaitingAdminConversationsForUser(session.user.email),
+    countAwaitingAdminConversationsForUser(identity.userEmail),
     countAwaitingAdminConversations(),
   ])
 

@@ -9,6 +9,7 @@ interface ChatInputProps {
   disabled?: boolean
   placeholder?: string
   helperText?: string
+  maxLength?: number
 }
 
 export function ChatInput({
@@ -16,6 +17,7 @@ export function ChatInput({
   disabled,
   placeholder = "Ask anything",
   helperText = "MeGPT can make mistakes. Check important info.",
+  maxLength,
 }: ChatInputProps) {
   const [value, setValue] = useState("")
 
@@ -43,6 +45,7 @@ export function ChatInput({
         <textarea
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          maxLength={maxLength}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault()
@@ -78,6 +81,7 @@ export function ChatInput({
 
       <p className="text-xs text-[#9e9e9e] mt-2 text-center">
         {helperText}
+        {typeof maxLength === "number" ? ` ${value.length}/${maxLength}` : ""}
       </p>
     </div>
   )

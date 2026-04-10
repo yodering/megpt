@@ -1,13 +1,14 @@
 "use client"
 
 import Link from "next/link"
-import { signIn, useSession } from "next-auth/react"
+import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { ChatHeader } from "@/components/chat-header"
 import { ChatInput } from "@/components/chat-input"
 import { ChatMessages } from "@/components/chat-messages"
 import { HeroPrompt } from "@/components/hero-prompt"
+import { MESSAGE_MAX_CHARS } from "@/lib/message-limit"
 
 interface Message {
   role: string
@@ -37,6 +38,18 @@ interface ConversationSummary {
 
 export default function Home() {
   const { data: session } = useSession()
+  const [guestId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null
+
+    const existingGuestId = window.sessionStorage.getItem("megpt-guest-id")
+    if (existingGuestId) {
+      return existingGuestId
+    }
+
+    const nextGuestId = crypto.randomUUID().replace(/-/g, "")
+    window.sessionStorage.setItem("megpt-guest-id", nextGuestId)
+    return nextGuestId
+  })
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [composerNotice, setComposerNotice] = useState<string | null>(null)
@@ -47,6 +60,15 @@ export default function Home() {
 
   const isAwaitingReply = conversation?.status === "awaiting_admin"
   const inputDisabled = isLoading || isAwaitingReply
+  const guestHeaders: Record<string, string> | undefined = guestId
+    ? { "x-guest-id": guestId }
+    : undefined
+  const jsonHeaders: Record<string, string> = guestId
+    ? {
+        "Content-Type": "application/json",
+        "x-guest-id": guestId,
+      }
+    : { "Content-Type": "application/json" }
   const sidebarChats = conversations.map((item) => ({
     id: item.id,
     title:
@@ -66,11 +88,16 @@ export default function Home() {
   }
 
   useEffect(() => {
-    if (!session) return
+    if (!session && !guestId) return
+
+    const headers = guestId ? { "x-guest-id": guestId } : undefined
 
     async function loadConversation(activeId?: number | null) {
       const search = activeId ? `?conversationId=${activeId}` : ""
-      const response = await fetch(`/api/conversation${search}`, { cache: "no-store" })
+      const response = await fetch(`/api/conversation${search}`, {
+        cache: "no-store",
+        headers,
+      })
       if (!response.ok) return
       const data = await response.json()
       setComposerNotice(null)
@@ -81,10 +108,10 @@ export default function Home() {
     }
 
     loadConversation()
-  }, [session])
+  }, [guestId, session])
 
   useEffect(() => {
-    if (!session || !conversationId) return
+    if ((!session && !guestId) || !conversationId) return
 
     const es = new EventSource(`/api/sse?conversationId=${conversationId}`)
     es.onmessage = (e) => {
@@ -103,21 +130,16 @@ export default function Home() {
     }
 
     return () => es.close()
-  }, [conversationId, session])
+  }, [conversationId, guestId, session])
 
   async function handleSend(text: string) {
-    if (!session) {
-      signIn("google")
-      return
-    }
-
     setMessages((prev) => [...prev, { role: "user", content: text }])
     setIsLoading(true)
     setComposerNotice(null)
 
     const response = await fetch("/api/conversation/messages", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: jsonHeaders,
       body: JSON.stringify({ text, conversationId }),
     })
 
@@ -162,14 +184,9 @@ export default function Home() {
   }
 
   async function handleNewChat() {
-    if (!session) {
-      signIn("google")
-      return
-    }
-
     const response = await fetch("/api/conversation", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: jsonHeaders,
     })
 
     if (!response.ok) return
@@ -184,10 +201,11 @@ export default function Home() {
   }
 
   async function handleSelectConversation(nextConversationId: number) {
-    if (!session) return
+    if (!session && !guestId) return
 
     const response = await fetch(`/api/conversation?conversationId=${nextConversationId}`, {
       cache: "no-store",
+      headers: guestHeaders,
     })
     if (!response.ok) return
 
@@ -201,10 +219,11 @@ export default function Home() {
   }
 
   async function handleDeleteConversation(conversationToDeleteId: number) {
-    if (!session) return
+    if (!session && !guestId) return
 
     const response = await fetch(`/api/conversation/${conversationToDeleteId}`, {
       method: "DELETE",
+      headers: guestHeaders,
     })
 
     if (!response.ok) return
@@ -252,6 +271,7 @@ export default function Home() {
                 onSend={handleSend}
                 disabled={inputDisabled}
                 placeholder={isAwaitingReply ? "MeGPT is still working..." : "Ask anything"}
+                maxLength={MESSAGE_MAX_CHARS}
                 helperText={
                   composerNotice ?? "MeGPT can make mistakes. Check important info."
                 }
@@ -267,6 +287,7 @@ export default function Home() {
                 onSend={handleSend}
                 disabled={inputDisabled}
                 placeholder={isAwaitingReply ? "MeGPT is still working..." : "Ask anything"}
+                maxLength={MESSAGE_MAX_CHARS}
                 helperText={
                   composerNotice ?? "MeGPT can make mistakes. Check important info."
                 }

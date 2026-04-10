@@ -5,25 +5,30 @@ import {
   listConversationsForUser,
 } from "@/lib/conversations"
 import { ensureDiscordBot } from "@/lib/discord-bot"
-import { requireSession } from "@/lib/server-auth"
+import { cleanupExpiredGuestConversations } from "@/lib/guest-conversations"
+import { getRequestIdentity } from "@/lib/request-identity"
 
 export const runtime = "nodejs"
 
 export async function GET(req: NextRequest) {
   await ensureDiscordBot()
-  const session = await requireSession()
+  const identity = await getRequestIdentity(req)
 
-  if (!session?.user?.email) {
+  if (!identity) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  if (identity.isGuest) {
+    await cleanupExpiredGuestConversations()
   }
 
   const conversationIdParam = Number(req.nextUrl.searchParams.get("conversationId"))
   const conversation = await getConversationForUser(
-    session.user.email,
-    session.user.name,
+    identity.userEmail,
+    identity.userName,
     Number.isFinite(conversationIdParam) ? conversationIdParam : null
   )
-  const conversations = await listConversationsForUser(session.user.email)
+  const conversations = await listConversationsForUser(identity.userEmail)
 
   return NextResponse.json({
     conversations,
@@ -32,18 +37,22 @@ export async function GET(req: NextRequest) {
   })
 }
 
-export async function POST() {
-  const session = await requireSession()
+export async function POST(req: NextRequest) {
+  const identity = await getRequestIdentity(req)
 
-  if (!session?.user?.email) {
+  if (!identity) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  if (identity.isGuest) {
+    await cleanupExpiredGuestConversations()
+  }
+
   const conversation = await createConversationForUser(
-    session.user.email,
-    session.user.name
+    identity.userEmail,
+    identity.userName
   )
-  const conversations = await listConversationsForUser(session.user.email)
+  const conversations = await listConversationsForUser(identity.userEmail)
 
   return NextResponse.json({ conversation, conversations })
 }
