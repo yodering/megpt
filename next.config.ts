@@ -1,4 +1,8 @@
-const nextConfig = {
+import path from "node:path"
+import type { NextConfig } from "next"
+
+const nextConfig: NextConfig = {
+  outputFileTracingRoot: path.resolve(__dirname),
   serverExternalPackages: ["discord.js", "@discordjs/ws", "zlib-sync"],
   async headers() {
     return [
