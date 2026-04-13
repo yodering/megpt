@@ -1,52 +1,92 @@
 "use client"
 
-import Link from "next/link"
 import { useSession, signIn, signOut } from "next-auth/react"
-import { ChevronDown, CircleHelp } from "lucide-react"
+import { ChevronDown, PanelLeft, PenBox, Share } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { Button } from "@/components/ui/button"
 
-export function ChatHeader() {
+interface ChatHeaderProps {
+  sidebarCollapsed: boolean
+  onToggleSidebar: () => void
+  onNewChat: () => void
+  hasMessages?: boolean
+}
+
+export function ChatHeader({
+  sidebarCollapsed,
+  onToggleSidebar,
+  onNewChat,
+  hasMessages = false,
+}: ChatHeaderProps) {
   const { data: session } = useSession()
+  const userInitial = session?.user?.name?.[0] || session?.user?.email?.[0] || "U"
 
   return (
-    <header className="flex items-center justify-between px-4 py-2 border-b border-[#e5e5e5]/50 bg-white">
-      {/* Left: model selector */}
-      <button className="flex items-center gap-1 text-lg font-semibold text-[#0d0d0d] hover:bg-[#f5f5f5] rounded-lg px-2 py-1 transition-colors">
-        MeGPT
-        <ChevronDown className="w-4 h-4 text-[#6e6e6e]" />
-      </button>
-
-      {/* Right: auth buttons */}
+    <header className="flex h-14 items-center justify-between border-b border-transparent px-4">
       <div className="flex items-center gap-2">
-        {session ? (
+        {sidebarCollapsed ? (
           <>
-            <button
-              onClick={() => signOut()}
-              className="text-sm text-[#6e6e6e] hover:text-[#0d0d0d] px-3 py-1.5 rounded-full transition-colors"
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleSidebar}
+              className="h-10 w-10 rounded-lg text-foreground hover:bg-accent"
             >
-              Sign out
-            </button>
-            <div className="w-8 h-8 rounded-full bg-[#0d0d0d] flex items-center justify-center text-white text-sm font-medium">
-              {session.user?.name?.[0] || session.user?.email?.[0] || "?"}
-            </div>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={() => signIn("google")}
-              className="text-sm border border-[#d1d1d1] text-[#0d0d0d] px-4 py-2 rounded-full hover:bg-[#f5f5f5] transition-colors"
+              <PanelLeft className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onNewChat}
+              className="h-10 w-10 rounded-lg text-foreground hover:bg-accent"
             >
-              Log in
-            </button>
+              <PenBox className="h-5 w-5" />
+            </Button>
           </>
-        )}
-        <Link
-          href="/privacy"
-          aria-label="Help"
-          title="Help"
-          className="p-2 rounded-full hover:bg-[#f5f5f5] transition-colors"
+        ) : null}
+
+        <Button
+          variant="ghost"
+          className="h-10 rounded-lg px-3 text-foreground hover:bg-accent"
         >
-          <CircleHelp className="w-5 h-5 text-[#6e6e6e]" />
-        </Link>
+          <span className="font-medium">MeGPT</span>
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="flex items-center gap-2">
+        {hasMessages ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="hidden h-9 rounded-full border-border bg-transparent px-4 text-foreground hover:bg-accent sm:inline-flex"
+          >
+            <Share className="h-4 w-4" />
+            <span>Share</span>
+          </Button>
+        ) : null}
+
+        <ThemeToggle className="h-9 w-9 rounded-full border-0 px-0 shadow-none hover:bg-accent" />
+
+        {session ? (
+          <button
+            type="button"
+            onClick={() => signOut()}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 text-xs font-medium text-white"
+            title="Sign out"
+          >
+            {userInitial.toUpperCase()}
+          </button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => signIn("google")}
+            className="h-9 rounded-full border-border bg-transparent px-4 text-foreground hover:bg-accent"
+          >
+            Log in
+          </Button>
+        )}
       </div>
     </header>
   )

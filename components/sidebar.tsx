@@ -1,25 +1,14 @@
 "use client"
 
 import {
-  Plus,
-  Search,
-  Image,
-  AppWindow,
-  Sparkles,
-  Heart,
+  MoreHorizontal,
   PanelLeftClose,
-  Trash2,
+  Search,
+  PenBox,
 } from "lucide-react"
 import { useSession } from "next-auth/react"
-
-const navItems = [
-  { icon: Plus, label: "New chat" },
-  { icon: Search, label: "Search chats" },
-  { icon: Image, label: "Images" },
-  { icon: AppWindow, label: "Apps" },
-  { icon: Sparkles, label: "Deep research" },
-  { icon: Heart, label: "Health" },
-]
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 interface SidebarProps {
   collapsed: boolean
@@ -27,7 +16,7 @@ interface SidebarProps {
   conversations?: Array<{
     id: number
     title: string
-    preview: string | null
+    date: string
   }>
   activeConversationId?: number | null
   onSelectConversation?: (conversationId: number) => void
@@ -45,117 +34,109 @@ export function Sidebar({
   onDeleteConversation,
 }: SidebarProps) {
   const { data: session } = useSession()
-
-  if (collapsed) {
-    return (
-      <div className="flex flex-col items-center py-3 px-2 gap-3 border-r border-[#e5e5e5] bg-[#f9f9f9]">
-        <button
-          onClick={onToggle}
-          className="p-2 rounded-lg hover:bg-[#ececec] transition-colors"
-        >
-          <PanelLeftClose className="w-5 h-5 text-[#0d0d0d] rotate-180" />
-        </button>
-        <button
-          onClick={onNewChat}
-          className="p-2 rounded-lg hover:bg-[#ececec] transition-colors"
-        >
-          <Plus className="w-5 h-5 text-[#0d0d0d]" />
-        </button>
-        <button className="p-2 rounded-lg hover:bg-[#ececec] transition-colors">
-          <Search className="w-5 h-5 text-[#0d0d0d]" />
-        </button>
-      </div>
-    )
-  }
+  const userLabel = session?.user?.name || "Guest"
+  const groupedChats = conversations.reduce<
+    Record<string, Array<{ id: number; title: string; date: string }>>
+  >(
+    (acc, conversation) => {
+      if (!acc[conversation.date]) {
+        acc[conversation.date] = []
+      }
+      acc[conversation.date].push(conversation)
+      return acc
+    },
+    {}
+  )
 
   return (
-    <div className="flex flex-col w-[260px] min-w-[260px] bg-[#f9f9f9] border-r border-[#e5e5e5] h-screen">
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-3">
-        <div className="flex items-center gap-2">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" stroke="#0d0d0d" strokeWidth="1.5" />
-            <circle cx="12" cy="12" r="4" fill="#0d0d0d" />
-          </svg>
-        </div>
-        <button
-          onClick={onToggle}
-          className="p-2 rounded-lg hover:bg-[#ececec] transition-colors"
-        >
-          <PanelLeftClose className="w-5 h-5 text-[#6e6e6e]" />
-        </button>
-      </div>
+    <aside
+      className={cn(
+        "flex h-screen flex-col overflow-hidden bg-sidebar transition-all duration-300 ease-in-out",
+        collapsed ? "w-0" : "w-[260px]"
+      )}
+      aria-hidden={collapsed}
+    >
+      {!collapsed ? (
+        <>
+          <div className="flex items-center justify-between p-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggle}
+              className="h-10 w-10 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent"
+            >
+              <PanelLeftClose className="h-5 w-5" />
+            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent"
+              >
+                <Search className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onNewChat}
+                className="h-10 w-10 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent"
+              >
+                <PenBox className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
 
-      {/* Nav items */}
-      <nav className="flex flex-col px-2 gap-0.5 mt-1">
-        {navItems.map(({ icon: Icon, label }) => (
-          <button
-            key={label}
-            onClick={label === "New chat" ? onNewChat : undefined}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#0d0d0d] hover:bg-[#ececec] transition-colors text-left"
-          >
-            <Icon className="w-[18px] h-[18px] text-[#6e6e6e]" />
-            {label}
-          </button>
-        ))}
-      </nav>
-
-      {session && conversations.length > 0 && (
-        <div className="px-3 pt-4">
-          <p className="px-2 pb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#6e6e6e]">
-            Chats
-          </p>
-          <div className="space-y-2">
-            {conversations.map((conversation) => (
-              <div key={conversation.id} className="relative">
-                <button
-                  onClick={() => onSelectConversation?.(conversation.id)}
-                  className={`w-full rounded-2xl border px-3 py-3 pr-11 text-left transition-colors ${
-                    activeConversationId === conversation.id
-                      ? "border-[#d8d8d8] bg-white"
-                      : "border-[#e5e5e5] bg-white hover:bg-[#fcfcfc]"
-                  }`}
-                >
-                  <p className="truncate text-sm font-medium text-[#0d0d0d]">
-                    {conversation.title}
-                  </p>
-                  <p className="mt-1 line-clamp-2 text-xs text-[#6e6e6e]">
-                    {conversation.preview || "No messages yet"}
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDeleteConversation?.(conversation.id)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-2 text-[#8a8a8a] transition-colors hover:bg-[#f1f1f1] hover:text-[#222]"
-                  aria-label="Delete chat"
-                  title="Delete chat"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+          <div className="flex-1 overflow-y-auto px-2 py-2">
+            {Object.entries(groupedChats).map(([date, chats]) => (
+              <div key={date} className="mb-4">
+                <h3 className="px-2 py-2 text-xs font-medium text-muted-foreground">
+                  {date}
+                </h3>
+                {chats?.map((chat) => (
+                  <div
+                    key={chat.id}
+                    className={cn(
+                      "group relative flex items-center gap-2 rounded-lg px-2 py-2 transition-colors",
+                      activeConversationId === chat.id
+                        ? "bg-sidebar-accent"
+                        : "hover:bg-sidebar-accent"
+                    )}
+                    onClick={() => onSelectConversation?.(chat.id)}
+                  >
+                    <span className="flex-1 truncate text-sm text-sidebar-foreground">
+                      {chat.title}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 rounded-md text-sidebar-foreground opacity-0 group-hover:opacity-100 hover:bg-sidebar-border"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onDeleteConversation?.(chat.id)
+                      }}
+                      title="Delete chat"
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
               </div>
             ))}
           </div>
-        </div>
-      )}
 
-      {/* Spacer */}
-      <div className="flex-1" />
-
-      {/* Bottom section */}
-      <div className="px-3 pb-4">
-        {!session && (
-          <>
-            <div className="bg-white rounded-xl p-3 mb-3 border border-[#e5e5e5]">
-              <p className="text-sm text-[#0d0d0d] font-medium mb-1">
-                Use guest mode instantly
-              </p>
-              <p className="text-xs text-[#6e6e6e] mb-2">
-                Guest chats expire automatically after a short time. Log in if you want chat history.
-              </p>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+          <div className="border-t border-sidebar-border p-2">
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent"
+            >
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 text-xs font-medium text-white">
+                {userLabel[0]?.toUpperCase() || "U"}
+              </div>
+              <span className="truncate text-sm">{userLabel}</span>
+            </Button>
+          </div>
+        </>
+      ) : null}
+    </aside>
   )
 }

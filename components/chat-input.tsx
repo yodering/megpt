@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, type FormEvent } from "react"
-import { Plus, Mic, ArrowUp } from "lucide-react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
+import { ArrowUp, Globe, Lightbulb, Paperclip } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 interface ChatInputProps {
@@ -10,6 +11,7 @@ interface ChatInputProps {
   placeholder?: string
   helperText?: string
   maxLength?: number
+  focusToken?: number
 }
 
 export function ChatInput({
@@ -18,8 +20,32 @@ export function ChatInput({
   placeholder = "Ask anything",
   helperText = "MeGPT can make mistakes. Check important info.",
   maxLength,
+  focusToken,
 }: ChatInputProps) {
   const [value, setValue] = useState("")
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (!textareaRef.current) return
+
+    textareaRef.current.style.height = "auto"
+    textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 220)}px`
+  }, [value])
+
+  useEffect(() => {
+    if (typeof focusToken !== "number" || disabled) return
+
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    const frame = window.requestAnimationFrame(() => {
+      textarea.focus()
+      const cursorPosition = textarea.value.length
+      textarea.setSelectionRange(cursorPosition, cursorPosition)
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [disabled, focusToken])
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -30,19 +56,13 @@ export function ChatInput({
   }
 
   return (
-    <div className="w-full flex flex-col items-center pb-4 px-4">
+    <div className="mx-auto w-full max-w-3xl px-4 pb-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-[672px] bg-[#f4f4f4] rounded-3xl border border-[#e5e5e5] flex items-end px-3 py-2 gap-2 transition-colors focus-within:border-[#c5c5c5]"
+        className="relative flex flex-col rounded-3xl border border-border bg-card shadow-sm"
       >
-        <button
-          type="button"
-          className="p-2 rounded-full hover:bg-[#e5e5e5] transition-colors shrink-0 mb-0.5"
-        >
-          <Plus className="w-5 h-5 text-[#6e6e6e]" />
-        </button>
-
         <textarea
+          ref={textareaRef}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           maxLength={maxLength}
@@ -53,33 +73,56 @@ export function ChatInput({
             }
           }}
           placeholder={placeholder}
+          disabled={disabled}
           rows={1}
-          className="flex-1 bg-transparent text-[#0d0d0d] text-base placeholder:text-[#9e9e9e] resize-none outline-none py-2 max-h-[200px]"
-          style={{ fieldSizing: "content" } as React.CSSProperties}
-        />
-
-        <button
-          type="button"
-          className="p-2 rounded-full hover:bg-[#e5e5e5] transition-colors shrink-0 mb-0.5"
-        >
-          <Mic className="w-5 h-5 text-[#6e6e6e]" />
-        </button>
-
-        <button
-          type="submit"
-          disabled={!value.trim() || disabled}
           className={cn(
-            "p-2 rounded-full shrink-0 mb-0.5 transition-colors",
-            value.trim()
-              ? "bg-[#0d0d0d] text-white hover:bg-[#2d2d2d]"
-              : "bg-[#e5e5e5] text-[#b0b0b0] cursor-not-allowed"
+            "min-h-[52px] max-h-[200px] w-full resize-none bg-transparent px-4 py-4 pr-14 text-[15px] text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
           )}
-        >
-          <ArrowUp className="w-5 h-5" />
-        </button>
+        />
+        <div className="flex items-center justify-between px-3 pb-3">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
+              title="Attachments are not available yet"
+            >
+              <Paperclip className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 rounded-full px-3 text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <Globe className="h-4 w-4" />
+              <span className="text-sm">Search</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 rounded-full px-3 text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <Lightbulb className="h-4 w-4" />
+              <span className="text-sm">{disabled ? "Pending" : "Reason"}</span>
+            </Button>
+          </div>
+          <Button
+            size="icon"
+            type="submit"
+            disabled={!value.trim() || disabled}
+            className={cn(
+              "h-8 w-8 rounded-full transition-colors",
+              value.trim() && !disabled
+                ? "bg-foreground text-background hover:bg-foreground/90"
+                : "bg-muted text-muted-foreground"
+            )}
+          >
+            <ArrowUp className="h-5 w-5" />
+          </Button>
+        </div>
       </form>
 
-      <p className="text-xs text-[#9e9e9e] mt-2 text-center">
+      <p className="mt-2 text-center text-xs text-muted-foreground">
         {helperText}
         {typeof maxLength === "number" ? ` ${value.length}/${maxLength}` : ""}
       </p>

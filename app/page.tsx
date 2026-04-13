@@ -32,6 +32,7 @@ interface Conversation {
 
 interface ConversationSummary {
   id: number
+  lastMessageAt: string
   lastMessageBody: string | null
   messageCount: number
 }
@@ -57,6 +58,7 @@ export default function Home() {
   const [conversationId, setConversationId] = useState<number | null>(null)
   const [conversation, setConversation] = useState<Conversation | null>(null)
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
+  const [chatInputFocusToken, setChatInputFocusToken] = useState(0)
 
   const isAwaitingReply = conversation?.status === "awaiting_admin"
   const inputDisabled = isLoading || isAwaitingReply
@@ -74,7 +76,7 @@ export default function Home() {
     title:
       item.lastMessageBody?.slice(0, 36) ||
       (item.messageCount > 0 ? "Conversation" : "New chat"),
-    preview: item.lastMessageBody,
+    date: getConversationDateLabel(item.lastMessageAt),
   }))
 
   function toUiMessage(message: ConversationMessagePayload, isNew = false): Message {
@@ -174,6 +176,7 @@ export default function Home() {
       return [
         {
           id: data.conversation.id,
+          lastMessageAt: new Date().toISOString(),
           lastMessageBody: text,
           messageCount:
             (prev.find((item) => item.id === data.conversation.id)?.messageCount ?? 0) + 1,
@@ -198,6 +201,7 @@ export default function Home() {
     setConversation(data.conversation)
     setMessages([])
     setIsLoading(false)
+    setChatInputFocusToken((currentToken) => currentToken + 1)
   }
 
   async function handleSelectConversation(nextConversationId: number) {
@@ -249,7 +253,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex h-screen bg-background">
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -260,62 +264,82 @@ export default function Home() {
         onDeleteConversation={handleDeleteConversation}
       />
 
-      <div className="flex flex-col flex-1 min-w-0">
-        <ChatHeader />
+      <main className="flex h-screen flex-1 flex-col overflow-hidden">
+        <ChatHeader
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+          onNewChat={handleNewChat}
+          hasMessages={messages.length > 0}
+        />
 
-        {messages.length === 0 ? (
-          <>
-            <HeroPrompt />
-            <div className="pb-4">
-              <ChatInput
-                onSend={handleSend}
-                disabled={inputDisabled}
-                placeholder={isAwaitingReply ? "MeGPT is still working..." : "Ask anything"}
-                maxLength={MESSAGE_MAX_CHARS}
-                helperText={
-                  composerNotice ?? "MeGPT can make mistakes. Check important info."
-                }
-              />
-              <FooterDisclosure />
+        <div className="flex-1 overflow-y-auto">
+          {messages.length === 0 ? (
+            <div className="flex h-full items-center justify-center">
+              <HeroPrompt />
             </div>
-          </>
-        ) : (
-          <>
+          ) : (
             <ChatMessages messages={messages} isLoading={isLoading} />
-            <div className="pb-4">
-              <ChatInput
-                onSend={handleSend}
-                disabled={inputDisabled}
-                placeholder={isAwaitingReply ? "MeGPT is still working..." : "Ask anything"}
-                maxLength={MESSAGE_MAX_CHARS}
-                helperText={
-                  composerNotice ?? "MeGPT can make mistakes. Check important info."
-                }
-              />
-              <FooterDisclosure />
-            </div>
-          </>
-        )}
-      </div>
+          )}
+        </div>
+
+        <div className="pb-4">
+          <ChatInput
+            onSend={handleSend}
+            disabled={inputDisabled}
+            placeholder={isAwaitingReply ? "MeGPT is still working..." : "Ask anything"}
+            maxLength={MESSAGE_MAX_CHARS}
+            helperText={composerNotice ?? "MeGPT can make mistakes. Check important info."}
+            focusToken={chatInputFocusToken}
+          />
+          <FooterDisclosure />
+        </div>
+      </main>
     </div>
   )
 }
 
 function FooterDisclosure() {
   return (
-    <p className="px-6 text-center text-xs leading-5 text-[#8d877c]">
+    <p className="px-6 text-center text-xs leading-5 text-muted-foreground">
       By messaging MeGPT, a human, you agree to our{" "}
-      <Link href="/terms" className="underline underline-offset-2 hover:text-[#5f5647]">
+      <Link
+        href="/terms"
+        className="underline underline-offset-2 hover:text-foreground"
+      >
         Terms
       </Link>{" "}
       and have read our{" "}
       <Link
         href="/privacy"
-        className="underline underline-offset-2 hover:text-[#5f5647]"
+        className="underline underline-offset-2 hover:text-foreground"
       >
         Privacy Policy
       </Link>
       .
     </p>
   )
+}
+
+function getConversationDateLabel(isoDate: string) {
+  const date = new Date(isoDate)
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfYesterday = new Date(startOfToday)
+  startOfYesterday.setDate(startOfYesterday.getDate() - 1)
+  const startOfSevenDays = new Date(startOfToday)
+  startOfSevenDays.setDate(startOfSevenDays.getDate() - 7)
+
+  if (date >= startOfToday) {
+    return "Today"
+  }
+
+  if (date >= startOfYesterday) {
+    return "Yesterday"
+  }
+
+  if (date >= startOfSevenDays) {
+    return "Previous 7 Days"
+  }
+
+  return "Older"
 }
