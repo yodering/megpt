@@ -1,6 +1,5 @@
 import Link from "next/link"
 import { ArrowLeft, FileText, Shield } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
 
 type LegalSection = {
   title: string
@@ -72,7 +71,6 @@ export function LegalDocument({
             >
               Terms
             </Link>
-            <ThemeToggle className="h-10 w-10 rounded-full border-0 px-0 hover:bg-accent" />
           </div>
         </div>
       </header>

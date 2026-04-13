@@ -5,6 +5,7 @@ export type ConversationSummary = {
   userEmail: string
   userName: string | null
   status: string
+  isPinned: boolean
   lastMessageAt: string
   lastMessageBody: string | null
   messageCount: number
@@ -25,6 +26,8 @@ export type ConversationRecord = {
   userEmail: string
   userName: string | null
   status: string
+  isPinned: boolean
+  pinnedAt: string | null
   createdAt: string
   updatedAt: string
   lastMessageAt: string
@@ -53,7 +56,16 @@ export async function createConversationForUser(
   const created = await pool.query<ConversationRecord>(
     `INSERT INTO conversations ("userEmail", "userName")
      VALUES ($1, $2)
-     RETURNING id, "userEmail", "userName", status, "createdAt", "updatedAt", "lastMessageAt"`,
+     RETURNING
+       id,
+       "userEmail",
+       "userName",
+       status,
+       "isPinned" AS "isPinned",
+       "pinnedAt" AS "pinnedAt",
+       "createdAt",
+       "updatedAt",
+       "lastMessageAt"`,
     [userEmail, userName ?? null]
   )
 
@@ -68,7 +80,16 @@ export async function getLatestConversationForUser(
   const pool = getDbPool()
 
   const existing = await pool.query<ConversationRecord>(
-    `SELECT id, "userEmail", "userName", status, "createdAt", "updatedAt", "lastMessageAt"
+    `SELECT
+       id,
+       "userEmail",
+       "userName",
+       status,
+       "isPinned" AS "isPinned",
+       "pinnedAt" AS "pinnedAt",
+       "createdAt",
+       "updatedAt",
+       "lastMessageAt"
      FROM conversations
      WHERE "userEmail" = $1
      ORDER BY "lastMessageAt" DESC, id DESC
@@ -161,7 +182,16 @@ export async function getConversationById(conversationId: number) {
   await ensureAppSchema()
   const pool = getDbPool()
   const result = await pool.query<ConversationRecord>(
-    `SELECT id, "userEmail", "userName", status, "createdAt", "updatedAt", "lastMessageAt"
+    `SELECT
+       id,
+       "userEmail",
+       "userName",
+       status,
+       "isPinned" AS "isPinned",
+       "pinnedAt" AS "pinnedAt",
+       "createdAt",
+       "updatedAt",
+       "lastMessageAt"
      FROM conversations
      WHERE id = $1
      LIMIT 1`,
@@ -196,7 +226,16 @@ export async function getConversationByIdForUser(
   await ensureAppSchema()
   const pool = getDbPool()
   const result = await pool.query<ConversationRecord>(
-    `SELECT id, "userEmail", "userName", status, "createdAt", "updatedAt", "lastMessageAt"
+    `SELECT
+       id,
+       "userEmail",
+       "userName",
+       status,
+       "isPinned" AS "isPinned",
+       "pinnedAt" AS "pinnedAt",
+       "createdAt",
+       "updatedAt",
+       "lastMessageAt"
      FROM conversations
      WHERE id = $1 AND "userEmail" = $2
      LIMIT 1`,
@@ -220,6 +259,36 @@ export async function deleteConversationForUser(
   )
 
   return (result.rowCount ?? 0) > 0
+}
+
+export async function setConversationPinnedForUser(
+  conversationId: number,
+  userEmail: string,
+  isPinned: boolean
+) {
+  await ensureAppSchema()
+  const pool = getDbPool()
+  const result = await pool.query<ConversationRecord>(
+    `UPDATE conversations
+     SET
+       "isPinned" = $3,
+       "pinnedAt" = CASE WHEN $3 THEN NOW() ELSE NULL END,
+       "updatedAt" = NOW()
+     WHERE id = $1 AND "userEmail" = $2
+     RETURNING
+       id,
+       "userEmail",
+       "userName",
+       status,
+       "isPinned" AS "isPinned",
+       "pinnedAt" AS "pinnedAt",
+       "createdAt",
+       "updatedAt",
+       "lastMessageAt"`,
+    [conversationId, userEmail, isPinned]
+  )
+
+  return result.rows[0] ?? null
 }
 
 export async function deleteConversationsForUser(
@@ -267,6 +336,7 @@ export async function listConversationsForUser(userEmail: string) {
        c."userEmail" AS "userEmail",
        c."userName" AS "userName",
        c.status,
+       c."isPinned" AS "isPinned",
        c."lastMessageAt" AS "lastMessageAt",
        (
          SELECT COALESCE(NULLIF(m.body, ''), CASE WHEN m."contentType" = 'image' THEN '[Image]' END)
@@ -280,7 +350,11 @@ export async function listConversationsForUser(userEmail: string) {
      LEFT JOIN messages m ON m."conversationId" = c.id
      WHERE c."userEmail" = $1
      GROUP BY c.id
-     ORDER BY c."lastMessageAt" DESC, c.id DESC`,
+     ORDER BY
+       c."isPinned" DESC,
+       COALESCE(c."pinnedAt", c."lastMessageAt") DESC,
+       c."lastMessageAt" DESC,
+       c.id DESC`,
     [userEmail]
   )
 

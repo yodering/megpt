@@ -35,6 +35,7 @@ interface Conversation {
 
 interface ConversationSummary {
   id: number
+  isPinned: boolean
   lastMessageAt: string
   lastMessageBody: string | null
   messageCount: number
@@ -80,6 +81,7 @@ export default function Home() {
       item.lastMessageBody?.slice(0, 36) ||
       (item.messageCount > 0 ? "Conversation" : "New chat"),
     date: getConversationDateLabel(item.lastMessageAt),
+    pinned: item.isPinned,
   }))
 
   function toUiMessage(message: ConversationMessagePayload, isNew = false): Message {
@@ -188,14 +190,18 @@ export default function Home() {
     setConversation(data.conversation)
     setConversationId(data.conversation.id)
     setConversations((prev) => {
+      const existingConversation = prev.find(
+        (item) => item.id === data.conversation.id
+      )
       const next = prev.filter((item) => item.id !== data.conversation.id)
       return [
         {
           id: data.conversation.id,
+          isPinned: existingConversation?.isPinned ?? false,
           lastMessageAt: new Date().toISOString(),
           lastMessageBody: text,
           messageCount:
-            (prev.find((item) => item.id === data.conversation.id)?.messageCount ?? 0) + 1,
+            (existingConversation?.messageCount ?? 0) + 1,
         },
         ...next,
       ]
@@ -268,6 +274,26 @@ export default function Home() {
     await handleSelectConversation(nextConversationId)
   }
 
+  async function handleTogglePinConversation(conversationToPinId: number) {
+    if (!session && !guestId) return
+
+    const targetConversation = conversations.find(
+      (item) => item.id === conversationToPinId
+    )
+    if (!targetConversation) return
+
+    const response = await fetch(`/api/conversation/${conversationToPinId}`, {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify({ pinned: !targetConversation.isPinned }),
+    })
+
+    if (!response.ok) return
+
+    const data = await response.json()
+    setConversations(data.conversations)
+  }
+
   return (
     <div className="flex h-screen bg-background">
       <Sidebar
@@ -278,6 +304,7 @@ export default function Home() {
         onSelectConversation={handleSelectConversation}
         onNewChat={handleNewChat}
         onDeleteConversation={handleDeleteConversation}
+        onTogglePinConversation={handleTogglePinConversation}
       />
 
       <main className="flex h-screen flex-1 flex-col overflow-hidden">

@@ -9,6 +9,16 @@ const rotatingPrompts = [
   "Explain this code step by step",
   "Draft a crisp follow-up email",
   "Turn my rough notes into a summary",
+  "Compare React Server Components and client components",
+  "Outline a launch checklist for a new feature",
+  "Help me write cleaner TypeScript",
+  "Summarize a long thread into key actions",
+  "Map out a study plan for the next two weeks",
+  "Rewrite this paragraph so it sounds more confident",
+  "Brainstorm app ideas I could build this weekend",
+  "Break a big project into smaller next steps",
+  "Help me prepare for a product design interview",
+  "Turn meeting notes into a clear action list",
 ]
 
 export function HeroPrompt() {
@@ -19,7 +29,7 @@ export function HeroPrompt() {
       setActivePromptIndex((currentIndex) =>
         (currentIndex + 1) % rotatingPrompts.length
       )
-    }, 2600)
+    }, 6000)
 
     return () => window.clearInterval(interval)
   }, [])

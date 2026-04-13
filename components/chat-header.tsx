@@ -1,8 +1,7 @@
 "use client"
 
-import { useSession, signIn, signOut } from "next-auth/react"
 import { ChevronDown, PanelLeft, PenBox, Share } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { ProfileMenu } from "@/components/profile-menu"
 import { Button } from "@/components/ui/button"
 
 interface ChatHeaderProps {
@@ -18,9 +17,6 @@ export function ChatHeader({
   onNewChat,
   hasMessages = false,
 }: ChatHeaderProps) {
-  const { data: session } = useSession()
-  const userInitial = session?.user?.name?.[0] || session?.user?.email?.[0] || "U"
-
   return (
     <header className="flex h-14 items-center justify-between border-b border-transparent px-4">
       <div className="flex items-center gap-2">
@@ -66,27 +62,7 @@ export function ChatHeader({
           </Button>
         ) : null}
 
-        <ThemeToggle className="h-9 w-9 rounded-full border-0 px-0 shadow-none hover:bg-accent" />
-
-        {session ? (
-          <button
-            type="button"
-            onClick={() => signOut()}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 text-xs font-medium text-white"
-            title="Sign out"
-          >
-            {userInitial.toUpperCase()}
-          </button>
-        ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => signIn("google")}
-            className="h-9 rounded-full border-border bg-transparent px-4 text-foreground hover:bg-accent"
-          >
-            Log in
-          </Button>
-        )}
+        <ProfileMenu variant="header" />
       </div>
     </header>
   )

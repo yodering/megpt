@@ -4,6 +4,7 @@ import {
   deleteConversationForUser,
   getConversationByIdForUser,
   listConversationsForUser,
+  setConversationPinnedForUser,
 } from "@/lib/conversations"
 import { cleanupExpiredGuestConversations } from "@/lib/guest-conversations"
 import { getRequestIdentity } from "@/lib/request-identity"
@@ -52,4 +53,47 @@ export async function DELETE(
   const conversations = await listConversationsForUser(identity.userEmail)
 
   return NextResponse.json({ ok: true, conversations })
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const identity = await getRequestIdentity(req)
+
+  if (!identity) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  if (identity.isGuest) {
+    await cleanupExpiredGuestConversations()
+  }
+
+  const { id } = await params
+  const conversationId = Number(id)
+
+  if (!Number.isFinite(conversationId)) {
+    return NextResponse.json({ error: "Invalid conversation id" }, { status: 400 })
+  }
+
+  const body = await req.json().catch(() => null)
+  const pinned = body?.pinned
+
+  if (typeof pinned !== "boolean") {
+    return NextResponse.json({ error: "Invalid pinned value" }, { status: 400 })
+  }
+
+  const conversation = await setConversationPinnedForUser(
+    conversationId,
+    identity.userEmail,
+    pinned
+  )
+
+  if (!conversation) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
+
+  const conversations = await listConversationsForUser(identity.userEmail)
+
+  return NextResponse.json({ ok: true, conversation, conversations })
 }

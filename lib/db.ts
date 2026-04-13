@@ -38,6 +38,8 @@ export async function ensureAppSchema() {
           "userEmail" TEXT NOT NULL,
           "userName" TEXT,
           status VARCHAR(64) NOT NULL DEFAULT 'open',
+          "isPinned" BOOLEAN NOT NULL DEFAULT FALSE,
+          "pinnedAt" TIMESTAMPTZ,
           "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           "lastMessageAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -65,6 +67,8 @@ export async function ensureAppSchema() {
         CREATE INDEX IF NOT EXISTS messages_conversation_id_idx ON messages("conversationId");
         CREATE INDEX IF NOT EXISTS conversations_last_message_at_idx ON conversations("lastMessageAt");
         CREATE INDEX IF NOT EXISTS conversations_user_email_idx ON conversations("userEmail");
+        CREATE INDEX IF NOT EXISTS conversations_user_email_is_pinned_idx
+          ON conversations("userEmail", "isPinned");
         CREATE INDEX IF NOT EXISTS discord_threads_thread_id_idx ON discord_threads("threadId");
       `)
 
@@ -81,6 +85,16 @@ export async function ensureAppSchema() {
       await pool.query(`
         ALTER TABLE messages
         ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;
+      `)
+
+      await pool.query(`
+        ALTER TABLE conversations
+        ADD COLUMN IF NOT EXISTS "isPinned" BOOLEAN NOT NULL DEFAULT FALSE;
+      `)
+
+      await pool.query(`
+        ALTER TABLE conversations
+        ADD COLUMN IF NOT EXISTS "pinnedAt" TIMESTAMPTZ;
       `)
     })().catch((error) => {
       globalThis.appSchemaReady = undefined
