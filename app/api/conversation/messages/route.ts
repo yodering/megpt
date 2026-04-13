@@ -9,6 +9,10 @@ import {
 } from "@/lib/conversations"
 import { syncUserMessageToDiscord } from "@/lib/discord-bot"
 import { cleanupExpiredGuestConversations } from "@/lib/guest-conversations"
+import {
+  deleteUploadedImageByUrl,
+  saveUploadedImage,
+} from "@/lib/image-uploads"
 import { MESSAGE_MAX_CHARS } from "@/lib/message-limit"
 import { getRequestIdentity } from "@/lib/request-identity"
 
@@ -18,6 +22,37 @@ const MAX_PENDING_CONVERSATIONS = Number(process.env.MAX_PENDING_CONVERSATIONS ?
 const MAX_PENDING_CONVERSATIONS_PER_USER = Number(
   process.env.MAX_PENDING_CONVERSATIONS_PER_USER ?? 1
 )
+
+async function parseIncomingMessage(req: NextRequest) {
+  const contentType = req.headers.get("content-type") ?? ""
+
+  if (contentType.includes("multipart/form-data")) {
+    const formData = await req.formData()
+    const textValue = formData.get("text")
+    const conversationIdValue = formData.get("conversationId")
+    const imageValue = formData.get("image")
+    const nextConversationId =
+      typeof conversationIdValue === "string" && Number.isFinite(Number(conversationIdValue))
+        ? Number(conversationIdValue)
+        : null
+
+    return {
+      text: typeof textValue === "string" ? textValue.trim() : "",
+      conversationId: nextConversationId,
+      imageFile:
+        imageValue instanceof File && imageValue.size > 0 ? imageValue : null,
+    }
+  }
+
+  const body = await req.json()
+
+  return {
+    text: typeof body.text === "string" ? body.text.trim() : "",
+    conversationId:
+      typeof body.conversationId === "number" ? body.conversationId : null,
+    imageFile: null,
+  }
+}
 
 export async function POST(req: NextRequest) {
   const identity = await getRequestIdentity(req)
@@ -30,13 +65,10 @@ export async function POST(req: NextRequest) {
     await cleanupExpiredGuestConversations()
   }
 
-  const body = await req.json()
-  const text = typeof body.text === "string" ? body.text.trim() : ""
-  const conversationId =
-    typeof body.conversationId === "number" ? body.conversationId : null
+  const { text, conversationId, imageFile } = await parseIncomingMessage(req)
 
-  if (!text) {
-    return NextResponse.json({ error: "No text" }, { status: 400 })
+  if (!text && !imageFile) {
+    return NextResponse.json({ error: "Add text or an image." }, { status: 400 })
   }
 
   if (text.length > MESSAGE_MAX_CHARS) {
@@ -84,12 +116,39 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const message = await createMessage(conversation.id, "user", text)
+  let uploadedImageUrl: string | null = null
+
+  if (imageFile) {
+    try {
+      const upload = await saveUploadedImage(imageFile)
+      uploadedImageUrl = upload.publicUrl
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Image upload failed." },
+        { status: 400 }
+      )
+    }
+  }
+
+  let message
+
+  try {
+    message = await createMessage(conversation.id, "user", text, {
+      contentType: uploadedImageUrl ? "image" : "text",
+      imageUrl: uploadedImageUrl,
+    })
+  } catch (error) {
+    await deleteUploadedImageByUrl(uploadedImageUrl)
+    throw error
+  }
+
   const updatedConversation = await getConversationById(conversation.id)
-  await syncUserMessageToDiscord(
-    updatedConversation ?? conversation,
-    message
-  )
+
+  try {
+    await syncUserMessageToDiscord(updatedConversation ?? conversation, message)
+  } catch (error) {
+    console.error("Failed to sync user message to Discord", error)
+  }
 
   return NextResponse.json({
     conversation: updatedConversation ?? conversation,

@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react"
 import { useEffect, useRef, useState } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { ChatHeader } from "@/components/chat-header"
-import { ChatInput } from "@/components/chat-input"
+import { ChatInput, type ComposerPayload } from "@/components/chat-input"
 import { ChatMessages } from "@/components/chat-messages"
 import { HeroPrompt } from "@/components/hero-prompt"
 import { MESSAGE_MAX_CHARS } from "@/lib/message-limit"
@@ -160,11 +160,13 @@ export default function Home() {
     return () => es.close()
   }, [conversationId, identityReady])
 
-  async function handleSend(text: string) {
-    if (!identityReady) return
+  async function handleSend({ text, image }: ComposerPayload) {
+    if (!identityReady) return false
+    if (!text && !image) return false
 
     const tempMessageKey = `temp-user:${Date.now()}:${text}`
     const requestId = beginConversationRequest()
+    const tempImageUrl = image ? URL.createObjectURL(image) : null
 
     setMessages((prev) => [
       ...prev,
@@ -172,20 +174,57 @@ export default function Home() {
         key: tempMessageKey,
         role: "user",
         content: text,
+        contentType: image ? "image" : "text",
+        imageUrl: tempImageUrl,
       },
     ])
     setIsLoading(true)
     setComposerNotice(null)
 
-    const response = await fetch("/api/conversation/messages", {
-      method: "POST",
-      headers: jsonHeaders,
-      body: JSON.stringify({ text, conversationId }),
-    })
+    let response: Response
+
+    try {
+      response = await fetch(
+        "/api/conversation/messages",
+        image
+          ? {
+              method: "POST",
+              headers: guestId ? { "x-guest-id": guestId } : undefined,
+              body: buildMessageFormData({ text, image, conversationId }),
+            }
+          : {
+              method: "POST",
+              headers: jsonHeaders,
+              body: JSON.stringify({ text, conversationId }),
+            }
+      )
+    } catch {
+      if (requestId !== conversationRequestIdRef.current) {
+        if (tempImageUrl) {
+          URL.revokeObjectURL(tempImageUrl)
+        }
+        return false
+      }
+
+      setIsLoading(false)
+      setComposerNotice("Your message could not be sent right now.")
+      setMessages((prev) =>
+        prev.filter((message) => message.key !== tempMessageKey)
+      )
+      if (tempImageUrl) {
+        URL.revokeObjectURL(tempImageUrl)
+      }
+      return false
+    }
 
     if (!response.ok) {
       const data = await response.json().catch(() => null)
-      if (requestId !== conversationRequestIdRef.current) return
+      if (requestId !== conversationRequestIdRef.current) {
+        if (tempImageUrl) {
+          URL.revokeObjectURL(tempImageUrl)
+        }
+        return false
+      }
       setIsLoading(false)
       if (response.status === 409) {
         setConversation((prev) =>
@@ -205,11 +244,19 @@ export default function Home() {
       setMessages((prev) =>
         prev.filter((message) => message.key !== tempMessageKey)
       )
-      return
+      if (tempImageUrl) {
+        URL.revokeObjectURL(tempImageUrl)
+      }
+      return false
     }
 
     const data = await response.json()
-    if (requestId !== conversationRequestIdRef.current) return
+    if (requestId !== conversationRequestIdRef.current) {
+      if (tempImageUrl) {
+        URL.revokeObjectURL(tempImageUrl)
+      }
+      return false
+    }
 
     const confirmedUserMessage = toUiMessage(data.message)
     setComposerNotice(null)
@@ -221,6 +268,9 @@ export default function Home() {
       ),
       confirmedUserMessage,
     ])
+    if (tempImageUrl) {
+      URL.revokeObjectURL(tempImageUrl)
+    }
     setConversation(data.conversation)
     setConversationId(data.conversation.id)
     setConversations((prev) => {
@@ -233,13 +283,14 @@ export default function Home() {
           id: data.conversation.id,
           isPinned: existingConversation?.isPinned ?? false,
           lastMessageAt: new Date().toISOString(),
-          lastMessageBody: text,
+          lastMessageBody: text || (image ? "[Image]" : null),
           messageCount:
             (existingConversation?.messageCount ?? 0) + 1,
         },
         ...next,
       ]
     })
+    return true
   }
 
   async function handleNewChat() {
@@ -385,6 +436,26 @@ export default function Home() {
       </main>
     </div>
   )
+}
+
+function buildMessageFormData({
+  text,
+  image,
+  conversationId,
+}: {
+  text: string
+  image: File
+  conversationId: number | null
+}) {
+  const formData = new FormData()
+  formData.append("text", text)
+  formData.append("image", image)
+
+  if (typeof conversationId === "number") {
+    formData.append("conversationId", String(conversationId))
+  }
+
+  return formData
 }
 
 function FooterDisclosure() {

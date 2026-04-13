@@ -1,12 +1,17 @@
 "use client"
 
 import { useEffect, useRef, useState, type FormEvent } from "react"
-import { ArrowUp, Globe, Lightbulb, Paperclip } from "lucide-react"
+import { ArrowUp, Globe, Lightbulb, Paperclip, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
+export interface ComposerPayload {
+  text: string
+  image: File | null
+}
+
 interface ChatInputProps {
-  onSend: (message: string) => void
+  onSend: (payload: ComposerPayload) => Promise<boolean>
   disabled?: boolean
   placeholder?: string
   helperText?: string
@@ -23,7 +28,12 @@ export function ChatInput({
   focusToken,
 }: ChatInputProps) {
   const [value, setValue] = useState("")
+  const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const isComposerDisabled = disabled || isSubmitting
 
   useEffect(() => {
     if (!textareaRef.current) return
@@ -33,7 +43,15 @@ export function ChatInput({
   }, [value])
 
   useEffect(() => {
-    if (typeof focusToken !== "number" || disabled) return
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [previewUrl])
+
+  useEffect(() => {
+    if (typeof focusToken !== "number" || isComposerDisabled) return
 
     const textarea = textareaRef.current
     if (!textarea) return
@@ -45,14 +63,42 @@ export function ChatInput({
     })
 
     return () => window.cancelAnimationFrame(frame)
-  }, [disabled, focusToken])
+  }, [focusToken, isComposerDisabled])
+
+  function clearSelectedImage() {
+    setSelectedImage(null)
+    setPreviewUrl((currentPreviewUrl) => {
+      if (currentPreviewUrl) {
+        URL.revokeObjectURL(currentPreviewUrl)
+      }
+
+      return null
+    })
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
+  async function submitComposer() {
+    const trimmed = value.trim()
+    if ((!trimmed && !selectedImage) || isComposerDisabled) return
+
+    setIsSubmitting(true)
+
+    try {
+      const sent = await onSend({ text: trimmed, image: selectedImage })
+      if (!sent) return
+
+      setValue("")
+      clearSelectedImage()
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    const trimmed = value.trim()
-    if (!trimmed || disabled) return
-    onSend(trimmed)
-    setValue("")
+    void submitComposer()
   }
 
   return (
@@ -61,6 +107,56 @@ export function ChatInput({
         onSubmit={handleSubmit}
         className="relative flex flex-col rounded-3xl border border-border bg-card shadow-sm"
       >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+          className="hidden"
+          disabled={isComposerDisabled}
+          onChange={(event) => {
+            const nextFile = event.target.files?.[0] ?? null
+            setPreviewUrl((currentPreviewUrl) => {
+              if (currentPreviewUrl) {
+                URL.revokeObjectURL(currentPreviewUrl)
+              }
+
+              return nextFile ? URL.createObjectURL(nextFile) : null
+            })
+            setSelectedImage(nextFile)
+          }}
+        />
+
+        {selectedImage && previewUrl ? (
+          <div className="px-4 pt-4">
+            <div className="inline-flex max-w-full items-start gap-3 rounded-2xl border border-border bg-background px-3 py-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewUrl}
+                alt={selectedImage.name}
+                className="h-16 w-16 rounded-xl border border-border object-cover"
+              />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-foreground">
+                  {selectedImage.name}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {(selectedImage.size / (1024 * 1024)).toFixed(1)} MB
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                type="button"
+                className="h-8 w-8 shrink-0 rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
+                onClick={clearSelectedImage}
+                title="Remove image"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
         <textarea
           ref={textareaRef}
           value={value}
@@ -69,11 +165,11 @@ export function ChatInput({
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault()
-              handleSubmit(e)
+              void submitComposer()
             }
           }}
           placeholder={placeholder}
-          disabled={disabled}
+          disabled={isComposerDisabled}
           rows={1}
           className={cn(
             "min-h-[52px] max-h-[200px] w-full resize-none bg-transparent px-4 py-4 pr-14 text-[15px] text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
@@ -84,14 +180,17 @@ export function ChatInput({
             <Button
               variant="ghost"
               size="icon"
+              type="button"
               className="h-8 w-8 rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
-              title="Attachments are not available yet"
+              title="Upload image"
+              onClick={() => fileInputRef.current?.click()}
             >
               <Paperclip className="h-5 w-5" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
+              type="button"
               className="h-8 rounded-full px-3 text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               <Globe className="h-4 w-4" />
@@ -100,19 +199,20 @@ export function ChatInput({
             <Button
               variant="ghost"
               size="sm"
+              type="button"
               className="h-8 rounded-full px-3 text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               <Lightbulb className="h-4 w-4" />
-              <span className="text-sm">{disabled ? "Pending" : "Reason"}</span>
+              <span className="text-sm">{isComposerDisabled ? "Pending" : "Reason"}</span>
             </Button>
           </div>
           <Button
             size="icon"
             type="submit"
-            disabled={!value.trim() || disabled}
+            disabled={(!value.trim() && !selectedImage) || isComposerDisabled}
             className={cn(
               "h-8 w-8 rounded-full transition-colors",
-              value.trim() && !disabled
+              (value.trim() || selectedImage) && !isComposerDisabled
                 ? "bg-foreground text-background hover:bg-foreground/90"
                 : "bg-muted text-muted-foreground"
             )}

@@ -1,4 +1,5 @@
 import {
+  AttachmentBuilder,
   ChannelType,
   Client,
   GatewayIntentBits,
@@ -13,6 +14,7 @@ import {
   getDiscordThreadByThreadId,
   upsertDiscordThread,
 } from "@/lib/discord-threads"
+import { getUploadedImageFilePath } from "@/lib/image-uploads"
 
 declare global {
   var discordClient: Client | undefined
@@ -48,14 +50,25 @@ function formatUserMessage(
   conversation: ConversationIdentity,
   message: ConversationMessage
 ): MessageCreateOptions {
+  const imageFilePath = message.imageUrl
+    ? getUploadedImageFilePath(message.imageUrl)
+    : null
   const header = [
     `New user message`,
     `Conversation: #${conversation.id}`,
     `User: ${conversation.userName || "Unknown"} <${conversation.userEmail}>`,
   ].join("\n")
+  const bodyLines =
+    message.contentType === "image"
+      ? [
+          imageFilePath ? "Image upload" : `Image upload: ${message.imageUrl ?? ""}`,
+          message.body,
+        ].filter(Boolean)
+      : [message.body]
 
   return {
-    content: `${header}\n\n${message.body}`,
+    content: [header, "", ...bodyLines].join("\n"),
+    files: imageFilePath ? [new AttachmentBuilder(imageFilePath)] : undefined,
     allowedMentions: { parse: [] },
   }
 }
