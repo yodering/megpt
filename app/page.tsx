@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useSession } from "next-auth/react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { ChatHeader } from "@/components/chat-header"
 import { ChatInput } from "@/components/chat-input"
@@ -42,7 +42,7 @@ interface ConversationSummary {
 }
 
 export default function Home() {
-  const { data: session } = useSession()
+  const { data: session, status: sessionStatus } = useSession()
   const [guestId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null
 
@@ -63,9 +63,14 @@ export default function Home() {
   const [conversation, setConversation] = useState<Conversation | null>(null)
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [chatInputFocusToken, setChatInputFocusToken] = useState(0)
+  const conversationRequestIdRef = useRef(0)
 
+  const identityKey =
+    session?.user?.email ??
+    (sessionStatus === "unauthenticated" && guestId ? `guest:${guestId}` : null)
+  const identityReady = identityKey !== null
   const isAwaitingReply = conversation?.status === "awaiting_admin"
-  const inputDisabled = isLoading || isAwaitingReply
+  const inputDisabled = !identityReady || isLoading || isAwaitingReply
   const guestHeaders: Record<string, string> | undefined = guestId
     ? { "x-guest-id": guestId }
     : undefined
@@ -95,10 +100,19 @@ export default function Home() {
     }
   }
 
-  useEffect(() => {
-    if (!session && !guestId) return
+  function beginConversationRequest() {
+    conversationRequestIdRef.current += 1
+    return conversationRequestIdRef.current
+  }
 
-    const headers = guestId ? { "x-guest-id": guestId } : undefined
+  useEffect(() => {
+    if (!identityReady) return
+
+    const requestId = beginConversationRequest()
+    const headers =
+      session?.user?.email || !guestId
+        ? undefined
+        : { "x-guest-id": guestId }
 
     async function loadConversation(activeId?: number | null) {
       const search = activeId ? `?conversationId=${activeId}` : ""
@@ -108,6 +122,7 @@ export default function Home() {
       })
       if (!response.ok) return
       const data = await response.json()
+      if (requestId !== conversationRequestIdRef.current) return
       setComposerNotice(null)
       setConversations(data.conversations)
       setConversationId(data.activeConversation?.id ?? null)
@@ -116,10 +131,10 @@ export default function Home() {
     }
 
     loadConversation()
-  }, [guestId, session])
+  }, [guestId, identityReady, session?.user?.email])
 
   useEffect(() => {
-    if ((!session && !guestId) || !conversationId) return
+    if (!identityReady || !conversationId) return
 
     const es = new EventSource(`/api/sse?conversationId=${conversationId}`)
     es.onmessage = (e) => {
@@ -143,13 +158,18 @@ export default function Home() {
     }
 
     return () => es.close()
-  }, [conversationId, guestId, session])
+  }, [conversationId, identityReady])
 
   async function handleSend(text: string) {
+    if (!identityReady) return
+
+    const tempMessageKey = `temp-user:${Date.now()}:${text}`
+    const requestId = beginConversationRequest()
+
     setMessages((prev) => [
       ...prev,
       {
-        key: `temp-user:${Date.now()}:${text}`,
+        key: tempMessageKey,
         role: "user",
         content: text,
       },
@@ -165,6 +185,7 @@ export default function Home() {
 
     if (!response.ok) {
       const data = await response.json().catch(() => null)
+      if (requestId !== conversationRequestIdRef.current) return
       setIsLoading(false)
       if (response.status === 409) {
         setConversation((prev) =>
@@ -181,12 +202,25 @@ export default function Home() {
           ? data.error
           : "Your message could not be sent right now."
       )
-      setMessages((prev) => prev.slice(0, -1))
+      setMessages((prev) =>
+        prev.filter((message) => message.key !== tempMessageKey)
+      )
       return
     }
 
     const data = await response.json()
+    if (requestId !== conversationRequestIdRef.current) return
+
+    const confirmedUserMessage = toUiMessage(data.message)
     setComposerNotice(null)
+    setMessages((prev) => [
+      ...prev.filter(
+        (message) =>
+          message.key !== tempMessageKey &&
+          message.key !== confirmedUserMessage.key
+      ),
+      confirmedUserMessage,
+    ])
     setConversation(data.conversation)
     setConversationId(data.conversation.id)
     setConversations((prev) => {
@@ -209,6 +243,9 @@ export default function Home() {
   }
 
   async function handleNewChat() {
+    if (!identityReady) return
+
+    const requestId = beginConversationRequest()
     const response = await fetch("/api/conversation", {
       method: "POST",
       headers: jsonHeaders,
@@ -217,6 +254,7 @@ export default function Home() {
     if (!response.ok) return
 
     const data = await response.json()
+    if (requestId !== conversationRequestIdRef.current) return
     setComposerNotice(null)
     setConversations(data.conversations)
     setConversationId(data.conversation.id)
@@ -227,7 +265,9 @@ export default function Home() {
   }
 
   async function handleSelectConversation(nextConversationId: number) {
-    if (!session && !guestId) return
+    if (!identityReady) return
+
+    const requestId = beginConversationRequest()
 
     const response = await fetch(`/api/conversation?conversationId=${nextConversationId}`, {
       cache: "no-store",
@@ -236,6 +276,7 @@ export default function Home() {
     if (!response.ok) return
 
     const data = await response.json()
+    if (requestId !== conversationRequestIdRef.current) return
     setComposerNotice(null)
     setConversations(data.conversations)
     setConversationId(data.activeConversation?.id ?? null)
@@ -245,7 +286,9 @@ export default function Home() {
   }
 
   async function handleDeleteConversation(conversationToDeleteId: number) {
-    if (!session && !guestId) return
+    if (!identityReady) return
+
+    const requestId = beginConversationRequest()
 
     const response = await fetch(`/api/conversation/${conversationToDeleteId}`, {
       method: "DELETE",
@@ -255,6 +298,7 @@ export default function Home() {
     if (!response.ok) return
 
     const data = await response.json()
+    if (requestId !== conversationRequestIdRef.current) return
     const remainingConversations = data.conversations as ConversationSummary[]
     const nextConversationId =
       conversationId === conversationToDeleteId
@@ -275,13 +319,14 @@ export default function Home() {
   }
 
   async function handleTogglePinConversation(conversationToPinId: number) {
-    if (!session && !guestId) return
+    if (!identityReady) return
 
     const targetConversation = conversations.find(
       (item) => item.id === conversationToPinId
     )
     if (!targetConversation) return
 
+    const requestId = beginConversationRequest()
     const response = await fetch(`/api/conversation/${conversationToPinId}`, {
       method: "PATCH",
       headers: jsonHeaders,
@@ -291,6 +336,7 @@ export default function Home() {
     if (!response.ok) return
 
     const data = await response.json()
+    if (requestId !== conversationRequestIdRef.current) return
     setConversations(data.conversations)
   }
 

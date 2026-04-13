@@ -106,8 +106,10 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
       {isOpen ? (
         <div
           className={cn(
-            "absolute z-30 w-72 rounded-2xl border border-border bg-popover p-2 shadow-[0_20px_50px_rgba(0,0,0,0.18)]",
-            variant === "header" ? "right-0 top-10" : "bottom-12 left-0"
+            "absolute z-30 rounded-2xl border border-border bg-popover p-2 shadow-[0_20px_50px_rgba(0,0,0,0.18)]",
+            variant === "header"
+              ? "right-0 top-10 w-72"
+              : "bottom-12 left-0 right-0 w-auto"
           )}
         >
           {activeView === "menu" ? (
@@ -202,7 +204,12 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
                   Choose how MeGPT looks across the app.
                 </p>
 
-                <div className="mt-4 grid grid-cols-2 gap-2">
+                <div
+                  className={cn(
+                    "mt-4 grid gap-2",
+                    variant === "header" ? "grid-cols-2" : "grid-cols-1"
+                  )}
+                >
                   <button
                     type="button"
                     className={cn(
