@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { ChatMessage } from "@/components/chat-message"
 
 interface Message {
+  key: string
   role: string
   content: string
   contentType?: "text" | "image"
@@ -39,7 +40,7 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
       <div className="mx-auto max-w-3xl px-4 py-4">
         {messages.map((msg, i) => (
           <ChatMessage
-            key={i}
+            key={msg.key ?? i}
             role={msg.role === "user" ? "user" : "assistant"}
             content={msg.content}
             contentType={msg.contentType}

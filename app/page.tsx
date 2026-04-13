@@ -11,6 +11,7 @@ import { HeroPrompt } from "@/components/hero-prompt"
 import { MESSAGE_MAX_CHARS } from "@/lib/message-limit"
 
 interface Message {
+  key: string
   role: string
   content: string
   contentType?: "text" | "image"
@@ -19,10 +20,12 @@ interface Message {
 }
 
 interface ConversationMessagePayload {
+  id?: number | string
   senderType: string
   body: string
   contentType?: "text" | "image"
   imageUrl?: string | null
+  createdAt?: string
 }
 
 interface Conversation {
@@ -81,6 +84,7 @@ export default function Home() {
 
   function toUiMessage(message: ConversationMessagePayload, isNew = false): Message {
     return {
+      key: getMessageKey(message),
       role: message.senderType === "user" ? "user" : "assistant",
       content: message.body,
       contentType: message.contentType ?? "text",
@@ -118,7 +122,12 @@ export default function Home() {
     const es = new EventSource(`/api/sse?conversationId=${conversationId}`)
     es.onmessage = (e) => {
       const data = JSON.parse(e.data)
-      setMessages((prev) => [...prev, toUiMessage(data.message, true)])
+      const nextMessage = toUiMessage(data.message, true)
+      setMessages((prev) =>
+        prev.some((message) => message.key === nextMessage.key)
+          ? prev
+          : [...prev, nextMessage]
+      )
       setConversation((prev) =>
         prev
           ? {
@@ -135,7 +144,14 @@ export default function Home() {
   }, [conversationId, guestId, session])
 
   async function handleSend(text: string) {
-    setMessages((prev) => [...prev, { role: "user", content: text }])
+    setMessages((prev) => [
+      ...prev,
+      {
+        key: `temp-user:${Date.now()}:${text}`,
+        role: "user",
+        content: text,
+      },
+    ])
     setIsLoading(true)
     setComposerNotice(null)
 
@@ -342,4 +358,22 @@ function getConversationDateLabel(isoDate: string) {
   }
 
   return "Older"
+}
+
+function getMessageKey(message: ConversationMessagePayload) {
+  if (typeof message.id === "number" && message.id > 0) {
+    return `db:${message.id}`
+  }
+
+  if (typeof message.id === "string" && message.id.length > 0) {
+    return `db:${message.id}`
+  }
+
+  return [
+    message.senderType,
+    message.createdAt ?? "",
+    message.contentType ?? "text",
+    message.imageUrl ?? "",
+    message.body,
+  ].join(":")
 }
