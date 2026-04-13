@@ -2,6 +2,8 @@
 
 import { Copy, RotateCcw, ThumbsDown, ThumbsUp, Volume2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { BlurRevealWord } from "@/components/ui/blur-reveal"
+import { ShimmerText } from "@/components/ui/shimmer-text"
 import { cn } from "@/lib/utils"
 
 interface ChatMessageProps {
@@ -10,6 +12,8 @@ interface ChatMessageProps {
   contentType?: "text" | "image"
   imageUrl?: string | null
   isStreaming?: boolean
+  isNew?: boolean
+  streamingLabel?: string
 }
 
 export function ChatMessage({
@@ -18,6 +22,8 @@ export function ChatMessage({
   contentType = "text",
   imageUrl,
   isStreaming,
+  isNew = false,
+  streamingLabel = "Thinking",
 }: ChatMessageProps) {
   return (
     <div
@@ -70,12 +76,18 @@ export function ChatMessage({
                 </p>
               ) : null}
             </>
+          ) : isStreaming ? (
+            <ShimmerText
+              className="text-[15px] leading-relaxed text-muted-foreground"
+              duration={1.7}
+            >
+              {streamingLabel}
+            </ShimmerText>
+          ) : role === "assistant" && isNew ? (
+            <AnimatedAssistantText content={content} />
           ) : (
             <p className="whitespace-pre-wrap text-[15px] leading-relaxed">
               {content}
-              {isStreaming ? (
-                <span className="ml-1 inline-block h-4 w-1.5 animate-pulse bg-foreground align-middle" />
-              ) : null}
             </p>
           )}
         </div>
@@ -120,6 +132,27 @@ export function ChatMessage({
           </div>
         ) : null}
       </div>
+    </div>
+  )
+}
+
+function AnimatedAssistantText({ content }: { content: string }) {
+  const lines = content.split("\n")
+
+  return (
+    <div className="space-y-1">
+      {lines.map((line, index) =>
+        line.length === 0 ? (
+          <div key={`line-${index}`} className="h-4" />
+        ) : (
+          <p
+            key={`line-${index}`}
+            className="whitespace-pre-wrap text-[15px] leading-relaxed"
+          >
+            <BlurRevealWord text={line} delay={index * 0.08} staggerDelay={0.03} />
+          </p>
+        )
+      )}
     </div>
   )
 }

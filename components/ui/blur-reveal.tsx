@@ -46,26 +46,32 @@ export function BlurRevealWord({
   staggerDelay = 0.04,
   className,
 }: BlurRevealWordProps) {
-  const words = text.split(" ")
+  const segments = text.split(/(\s+)/).filter(Boolean)
 
   return (
     <span className={className}>
-      {words.map((word, i) => (
-        <motion.span
-          key={i}
-          initial="hidden"
-          animate="visible"
-          variants={variants}
-          transition={{
-            duration: 0.4,
-            delay: delay + i * staggerDelay,
-            ease: "easeOut",
-          }}
-          className="inline-block mr-[0.25em]"
-        >
-          {word}
-        </motion.span>
-      ))}
+      {segments.map((segment, i) =>
+        /\s+/.test(segment) ? (
+          <span key={`space-${i}`} style={{ whiteSpace: "pre-wrap" }}>
+            {segment}
+          </span>
+        ) : (
+          <motion.span
+            key={`word-${i}`}
+            initial="hidden"
+            animate="visible"
+            variants={variants}
+            transition={{
+              duration: 0.4,
+              delay: delay + i * staggerDelay,
+              ease: "easeOut",
+            }}
+            className="inline-block"
+          >
+            {segment}
+          </motion.span>
+        )
+      )}
     </span>
   )
 }

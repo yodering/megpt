@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ChatMessage } from "@/components/chat-message"
 
 interface Message {
@@ -16,6 +16,14 @@ interface ChatMessagesProps {
   isLoading?: boolean
 }
 
+const THINKING_LABELS = [
+  "Thinking",
+  "Reviewing context",
+  "Connecting details",
+  "Drafting response",
+  "Checking the wording",
+]
+
 export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -24,6 +32,7 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
   }, [messages, isLoading])
 
   const lastMessage = messages[messages.length - 1]
+  const showThinkingState = Boolean(isLoading && lastMessage?.role === "user")
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -35,15 +44,39 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
             content={msg.content}
             contentType={msg.contentType}
             imageUrl={msg.imageUrl}
+            isNew={Boolean(msg.isNew)}
           />
         ))}
 
-        {isLoading && lastMessage?.role === "user" ? (
-          <ChatMessage role="assistant" content="" isStreaming />
+        {showThinkingState ? (
+          <ThinkingIndicator />
         ) : null}
 
         <div ref={bottomRef} />
       </div>
     </div>
+  )
+}
+
+function ThinkingIndicator() {
+  const [thinkingLabelIndex, setThinkingLabelIndex] = useState(0)
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setThinkingLabelIndex((currentIndex) =>
+        (currentIndex + 1) % THINKING_LABELS.length
+      )
+    }, 1900)
+
+    return () => window.clearInterval(interval)
+  }, [])
+
+  return (
+    <ChatMessage
+      role="assistant"
+      content=""
+      isStreaming
+      streamingLabel={THINKING_LABELS[thinkingLabelIndex]}
+    />
   )
 }
