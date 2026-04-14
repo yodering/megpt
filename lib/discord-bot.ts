@@ -259,5 +259,12 @@ export async function deleteDiscordThreadForConversation(conversationId: number)
   const channel = await client.channels.fetch(mapping.threadId).catch(() => null)
   if (!channel?.isThread()) return
 
-  await channel.delete(`Conversation #${conversationId} deleted from MeGPT`)
+  await channel
+    .delete(`Conversation #${conversationId} deleted from MeGPT`)
+    .catch((error) => {
+      console.warn(
+        `Failed to delete Discord thread for conversation ${conversationId}`,
+        error
+      )
+    })
 }
