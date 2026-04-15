@@ -104,7 +104,6 @@ function buildThreadUrl(guildId: string, threadId: string) {
 
 function buildNotificationMentions(config: NonNullable<ReturnType<typeof getDiscordConfig>>) {
   const mentions: string[] = []
-  const parse: ("users" | "roles")[] = []
   const notificationUserId =
     config.notificationUserId && /^\d+$/.test(config.notificationUserId)
       ? config.notificationUserId
@@ -116,18 +115,16 @@ function buildNotificationMentions(config: NonNullable<ReturnType<typeof getDisc
 
   if (notificationUserId) {
     mentions.push(`<@${notificationUserId}>`)
-    parse.push("users")
   }
 
   if (notificationRoleId) {
     mentions.push(`<@&${notificationRoleId}>`)
-    parse.push("roles")
   }
 
   return {
     contentPrefix: mentions.join(" "),
     allowedMentions: {
-      parse,
+      parse: [],
       users: notificationUserId
         ? [notificationUserId as Snowflake]
         : undefined,
@@ -135,6 +132,19 @@ function buildNotificationMentions(config: NonNullable<ReturnType<typeof getDisc
         ? [notificationRoleId as Snowflake]
         : undefined,
     },
+  }
+}
+
+function withoutMentions(message: MessageCreateOptions): MessageCreateOptions {
+  const content = message.content
+    ?.replace(/<@&?\d+>/g, "")
+    .replace(/^\s*\n/, "")
+    .trim()
+
+  return {
+    ...message,
+    content,
+    allowedMentions: { parse: [] },
   }
 }
 
@@ -363,7 +373,14 @@ export async function syncUserMessageToDiscord(
     unarchiveReason: "New user message",
   })
 
-  await thread.send(formatUserMessage(config, conversation, message))
+  const discordMessage = formatUserMessage(config, conversation, message)
+
+  try {
+    await thread.send(discordMessage)
+  } catch (error) {
+    console.error("Failed to send Discord user message with mentions", error)
+    await thread.send(withoutMentions(discordMessage))
+  }
 }
 
 export async function deleteDiscordThreadForConversation(conversationId: number) {
