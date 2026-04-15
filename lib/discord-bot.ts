@@ -4,6 +4,7 @@ import {
   Client,
   GatewayIntentBits,
   type MessageCreateOptions,
+  type Snowflake,
   type TextChannel,
   type ThreadChannel,
 } from "discord.js"
@@ -32,12 +33,23 @@ function getDiscordConfig() {
   const token = process.env.DISCORD_BOT_TOKEN
   const guildId = process.env.DISCORD_GUILD_ID
   const parentChannelId = process.env.DISCORD_PARENT_CHANNEL_ID
+  const notificationChannelId =
+    process.env.DISCORD_NOTIFICATION_CHANNEL_ID ?? parentChannelId
+  const notificationUserId = process.env.DISCORD_NOTIFICATION_USER_ID ?? null
+  const notificationRoleId = process.env.DISCORD_NOTIFICATION_ROLE_ID ?? null
 
   if (!token || !guildId || !parentChannelId) {
     return null
   }
 
-  return { token, guildId, parentChannelId }
+  return {
+    token,
+    guildId,
+    parentChannelId,
+    notificationChannelId,
+    notificationUserId,
+    notificationRoleId,
+  }
 }
 
 function buildThreadName(conversation: ConversationIdentity) {
@@ -47,13 +59,16 @@ function buildThreadName(conversation: ConversationIdentity) {
 }
 
 function formatUserMessage(
+  config: NonNullable<ReturnType<typeof getDiscordConfig>>,
   conversation: ConversationIdentity,
   message: ConversationMessage
 ): MessageCreateOptions {
   const imageFilePath = message.imageUrl
     ? getUploadedImageFilePath(message.imageUrl)
     : null
+  const mentions = buildNotificationMentions(config)
   const header = [
+    mentions.contentPrefix,
     `New user message`,
     `Conversation: #${conversation.id}`,
     `User: ${conversation.userName || "Unknown"} <${conversation.userEmail}>`,
@@ -69,7 +84,7 @@ function formatUserMessage(
   return {
     content: [header, "", ...bodyLines].join("\n"),
     files: imageFilePath ? [new AttachmentBuilder(imageFilePath)] : undefined,
-    allowedMentions: { parse: [] },
+    allowedMentions: mentions.allowedMentions,
   }
 }
 
@@ -83,6 +98,58 @@ function formatThreadOpenedMessage(conversation: ConversationIdentity): MessageC
   }
 }
 
+function buildThreadUrl(guildId: string, threadId: string) {
+  return `https://discord.com/channels/${guildId}/${threadId}`
+}
+
+function buildNotificationMentions(config: NonNullable<ReturnType<typeof getDiscordConfig>>) {
+  const mentions: string[] = []
+  const parse: ("users" | "roles")[] = []
+
+  if (config.notificationUserId) {
+    mentions.push(`<@${config.notificationUserId}>`)
+    parse.push("users")
+  }
+
+  if (config.notificationRoleId) {
+    mentions.push(`<@&${config.notificationRoleId}>`)
+    parse.push("roles")
+  }
+
+  return {
+    contentPrefix: mentions.join(" "),
+    allowedMentions: {
+      parse,
+      users: config.notificationUserId
+        ? [config.notificationUserId as Snowflake]
+        : undefined,
+      roles: config.notificationRoleId
+        ? [config.notificationRoleId as Snowflake]
+        : undefined,
+    },
+  }
+}
+
+function formatNewThreadNotification(
+  config: NonNullable<ReturnType<typeof getDiscordConfig>>,
+  conversation: ConversationIdentity,
+  thread: ThreadChannel
+): MessageCreateOptions {
+  const mentions = buildNotificationMentions(config)
+  const lines = [
+    mentions.contentPrefix,
+    `New chat request: conversation #${conversation.id}`,
+    `User: ${conversation.userName || "Unknown"} <${conversation.userEmail}>`,
+    `Thread: ${thread.toString()}`,
+    buildThreadUrl(config.guildId, thread.id),
+  ].filter(Boolean)
+
+  return {
+    content: lines.join("\n"),
+    allowedMentions: mentions.allowedMentions,
+  }
+}
+
 async function getParentChannel(client: Client, parentChannelId: string) {
   const channel = await client.channels.fetch(parentChannelId)
 
@@ -91,6 +158,30 @@ async function getParentChannel(client: Client, parentChannelId: string) {
   }
 
   return channel as TextChannel
+}
+
+async function sendNewThreadNotification(
+  client: Client,
+  config: NonNullable<ReturnType<typeof getDiscordConfig>>,
+  conversation: ConversationIdentity,
+  thread: ThreadChannel
+) {
+  if (!config.notificationChannelId) return
+
+  const channel = await client.channels
+    .fetch(config.notificationChannelId)
+    .catch(() => null)
+
+  if (!channel || channel.type !== ChannelType.GuildText) {
+    console.warn(
+      "DISCORD_NOTIFICATION_CHANNEL_ID must point to a text channel"
+    )
+    return
+  }
+
+  await (channel as TextChannel).send(
+    formatNewThreadNotification(config, conversation, thread)
+  )
 }
 
 async function findOrCreateThread(
@@ -123,6 +214,7 @@ async function findOrCreateThread(
   })
 
   await thread.send(formatThreadOpenedMessage(conversation))
+  await sendNewThreadNotification(client, config, conversation, thread)
 
   return thread
 }
@@ -250,6 +342,8 @@ export async function syncUserMessageToDiscord(
 ) {
   const client = await ensureDiscordBot()
   if (!client) return
+  const config = getDiscordConfig()
+  if (!config) return
 
   const thread = await findOrCreateThread(client, conversation)
   if (!thread) return
@@ -258,7 +352,7 @@ export async function syncUserMessageToDiscord(
     unarchiveReason: "New user message",
   })
 
-  await thread.send(formatUserMessage(conversation, message))
+  await thread.send(formatUserMessage(config, conversation, message))
 }
 
 export async function deleteDiscordThreadForConversation(conversationId: number) {

@@ -20,6 +20,9 @@ DATABASE_URL=
 DISCORD_BOT_TOKEN=
 DISCORD_GUILD_ID=
 DISCORD_PARENT_CHANNEL_ID=
+DISCORD_NOTIFICATION_CHANNEL_ID=
+DISCORD_NOTIFICATION_USER_ID=
+DISCORD_NOTIFICATION_ROLE_ID=
 MAX_PENDING_CONVERSATIONS=20
 MAX_PENDING_CONVERSATIONS_PER_USER=1
 ```
@@ -41,6 +44,9 @@ DATABASE_URL=
 DISCORD_BOT_TOKEN=
 DISCORD_GUILD_ID=
 DISCORD_PARENT_CHANNEL_ID=
+DISCORD_NOTIFICATION_CHANNEL_ID=
+DISCORD_NOTIFICATION_USER_ID=
+DISCORD_NOTIFICATION_ROLE_ID=
 MAX_PENDING_CONVERSATIONS=20
 MAX_PENDING_CONVERSATIONS_PER_USER=1
 ```
@@ -62,10 +68,14 @@ The app now supports Discord as the operator surface while keeping Postgres as t
 - Enable the `MESSAGE CONTENT INTENT` for the bot.
 - Invite the bot to your server with permission to view channels, send messages, create public threads, send messages in threads, and read message history.
 - Set `DISCORD_PARENT_CHANNEL_ID` to a normal text channel where the app should create one thread per conversation.
+- Optional: set `DISCORD_NOTIFICATION_CHANNEL_ID` to a separate text channel for extra alerts. If unset, no separate alert is sent.
+- Optional: set `DISCORD_NOTIFICATION_USER_ID` to ping one user on each mirrored user message in Discord.
+- Optional: set `DISCORD_NOTIFICATION_ROLE_ID` to ping a role on each mirrored user message in Discord.
 
 Behavior:
 
 - User messages from the app are saved to Postgres and mirrored into a Discord thread.
+- Mirrored user messages can include an optional user or role mention, which is useful if you want phone push notifications for every new inbound message.
 - Replies written in that Discord thread are saved back into Postgres and streamed to the user UI.
 - Image attachments in Discord replies are saved back into Postgres and displayed inline in the user UI.
 - The app will auto-create the `discord_threads` table on first database use.
