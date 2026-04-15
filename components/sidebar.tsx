@@ -15,7 +15,9 @@ import { cn } from "@/lib/utils"
 
 interface SidebarProps {
   collapsed: boolean
+  mobileOpen?: boolean
   onToggle: () => void
+  onCloseMobile?: () => void
   conversations?: Array<{
     id: number
     title: string
@@ -31,7 +33,9 @@ interface SidebarProps {
 
 export function Sidebar({
   collapsed,
+  mobileOpen = false,
   onToggle,
+  onCloseMobile,
   conversations = [],
   activeConversationId,
   onSelectConversation,
@@ -74,14 +78,24 @@ export function Sidebar({
   }, [activeMenuConversationId])
 
   return (
-    <aside
-      className={cn(
-        "flex h-screen flex-col overflow-hidden bg-sidebar transition-all duration-300 ease-in-out",
-        collapsed ? "w-0" : "w-[260px]"
-      )}
-      aria-hidden={collapsed}
-    >
-      {!collapsed ? (
+    <>
+      <div
+        className={cn(
+          "fixed inset-0 z-30 bg-black/40 transition-opacity duration-300 md:hidden",
+          mobileOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
+        onClick={onCloseMobile}
+        aria-hidden={!mobileOpen}
+      />
+      <aside
+        className={cn(
+          "safe-top safe-bottom fixed inset-y-0 left-0 z-40 flex w-[min(82vw,320px)] flex-col overflow-hidden border-r border-sidebar-border bg-sidebar transition-transform duration-300 ease-in-out md:static md:z-auto md:w-auto md:border-r-0 md:transition-[width]",
+          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+          collapsed ? "md:w-0" : "md:w-[260px]"
+        )}
+        aria-hidden={collapsed && !mobileOpen}
+      >
+        {mobileOpen || !collapsed ? (
         <>
           <div className="flex items-center justify-between p-2">
             <Button
@@ -111,7 +125,7 @@ export function Sidebar({
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-2 py-2">
+          <div className="momentum-scroll flex-1 overflow-y-auto px-2 py-2">
             {pinnedChats.length > 0 ? (
               <div className="mb-4">
                 <h3 className="px-2 py-2 text-xs font-medium text-muted-foreground">
@@ -159,8 +173,9 @@ export function Sidebar({
             <ProfileMenu variant="sidebar" />
           </div>
         </>
-      ) : null}
-    </aside>
+        ) : null}
+      </aside>
+    </>
   )
 }
 
@@ -211,7 +226,7 @@ function ConversationRow({
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6 rounded-md text-sidebar-foreground opacity-0 group-hover:opacity-100 hover:bg-sidebar-border"
+          className="h-7 w-7 rounded-md text-sidebar-foreground opacity-100 hover:bg-sidebar-border md:h-6 md:w-6 md:opacity-0 md:group-hover:opacity-100"
           onClick={(event) => {
             event.stopPropagation()
             onToggleMenu(isMenuOpen ? null : chat.id)

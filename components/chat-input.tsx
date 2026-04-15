@@ -102,10 +102,10 @@ export function ChatInput({
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-4">
+    <div className="mx-auto w-full max-w-3xl px-3 pb-3 sm:px-4 sm:pb-4">
       <form
         onSubmit={handleSubmit}
-        className="relative flex flex-col rounded-3xl border border-border bg-card shadow-sm"
+        className="relative flex flex-col rounded-[1.75rem] border border-border bg-card/96 shadow-sm backdrop-blur"
       >
         <input
           ref={fileInputRef}
@@ -127,7 +127,7 @@ export function ChatInput({
         />
 
         {selectedImage && previewUrl ? (
-          <div className="px-4 pt-4">
+          <div className="px-3 pt-3 sm:px-4 sm:pt-4">
             <div className="inline-flex max-w-full items-start gap-3 rounded-2xl border border-border bg-background px-3 py-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -172,11 +172,11 @@ export function ChatInput({
           disabled={isComposerDisabled}
           rows={1}
           className={cn(
-            "min-h-[52px] max-h-[200px] w-full resize-none bg-transparent px-4 py-4 pr-14 text-[15px] text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
+            "min-h-[52px] max-h-[200px] w-full resize-none bg-transparent px-4 py-3.5 pr-14 text-[15px] text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50 sm:py-4"
           )}
         />
-        <div className="flex items-center justify-between px-3 pb-3">
-          <div className="flex items-center gap-1">
+        <div className="flex items-center justify-between gap-3 px-3 pb-3">
+          <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
             <Button
               variant="ghost"
               size="icon"
@@ -191,19 +191,21 @@ export function ChatInput({
               variant="ghost"
               size="sm"
               type="button"
-              className="h-8 rounded-full px-3 text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="h-8 shrink-0 rounded-full px-3 text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               <Globe className="h-4 w-4" />
-              <span className="text-sm">Search</span>
+              <span className="hidden text-sm sm:inline">Search</span>
             </Button>
             <Button
               variant="ghost"
               size="sm"
               type="button"
-              className="h-8 rounded-full px-3 text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="h-8 shrink-0 rounded-full px-3 text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               <Lightbulb className="h-4 w-4" />
-              <span className="text-sm">{isComposerDisabled ? "Pending" : "Reason"}</span>
+              <span className="hidden text-sm sm:inline">
+                {isComposerDisabled ? "Pending" : "Reason"}
+              </span>
             </Button>
           </div>
           <Button

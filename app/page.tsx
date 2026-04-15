@@ -59,6 +59,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false)
   const [composerNotice, setComposerNotice] = useState<string | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [isMobileViewport, setIsMobileViewport] = useState(false)
   const [conversationId, setConversationId] = useState<number | null>(null)
   const [conversation, setConversation] = useState<Conversation | null>(null)
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
@@ -104,6 +106,43 @@ export default function Home() {
     conversationRequestIdRef.current += 1
     return conversationRequestIdRef.current
   }
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)")
+    const updateViewportMode = (event?: MediaQueryList | MediaQueryListEvent) => {
+      const mobile = event?.matches ?? mediaQuery.matches
+      setIsMobileViewport(mobile)
+
+      if (!mobile) {
+        setMobileSidebarOpen(false)
+      }
+    }
+
+    updateViewportMode(mediaQuery)
+    mediaQuery.addEventListener("change", updateViewportMode)
+    return () => mediaQuery.removeEventListener("change", updateViewportMode)
+  }, [])
+
+  useEffect(() => {
+    const root = document.documentElement
+
+    const updateViewportHeight = () => {
+      const nextHeight = window.visualViewport?.height ?? window.innerHeight
+      root.style.setProperty("--app-height", `${nextHeight}px`)
+    }
+
+    updateViewportHeight()
+    window.addEventListener("resize", updateViewportHeight)
+    window.visualViewport?.addEventListener("resize", updateViewportHeight)
+    window.visualViewport?.addEventListener("scroll", updateViewportHeight)
+
+    return () => {
+      window.removeEventListener("resize", updateViewportHeight)
+      window.visualViewport?.removeEventListener("resize", updateViewportHeight)
+      window.visualViewport?.removeEventListener("scroll", updateViewportHeight)
+      root.style.removeProperty("--app-height")
+    }
+  }, [])
 
   useEffect(() => {
     if (!identityReady) return
@@ -313,6 +352,7 @@ export default function Home() {
     setMessages([])
     setIsLoading(false)
     setChatInputFocusToken((currentToken) => currentToken + 1)
+    setMobileSidebarOpen(false)
   }
 
   async function handleSelectConversation(nextConversationId: number) {
@@ -334,6 +374,7 @@ export default function Home() {
     setConversation(data.activeConversation)
     setMessages(data.messages.map((message: ConversationMessagePayload) => toUiMessage(message)))
     setIsLoading(false)
+    setMobileSidebarOpen(false)
   }
 
   async function handleDeleteConversation(conversationToDeleteId: number) {
@@ -391,11 +432,25 @@ export default function Home() {
     setConversations(data.conversations)
   }
 
+  function handleToggleSidebar() {
+    if (isMobileViewport) {
+      setMobileSidebarOpen((currentState) => !currentState)
+      return
+    }
+
+    setSidebarCollapsed((currentState) => !currentState)
+  }
+
   return (
-    <div className="flex h-screen bg-background">
+    <div
+      className="flex bg-background"
+      style={{ minHeight: "var(--app-height, 100dvh)" }}
+    >
       <Sidebar
         collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        mobileOpen={mobileSidebarOpen}
+        onToggle={handleToggleSidebar}
+        onCloseMobile={() => setMobileSidebarOpen(false)}
         conversations={sidebarChats}
         activeConversationId={conversationId}
         onSelectConversation={handleSelectConversation}
@@ -404,17 +459,21 @@ export default function Home() {
         onTogglePinConversation={handleTogglePinConversation}
       />
 
-      <main className="flex h-screen flex-1 flex-col overflow-hidden">
+      <main
+        className="safe-top flex flex-1 flex-col overflow-hidden"
+        style={{ minHeight: "var(--app-height, 100dvh)" }}
+      >
         <ChatHeader
           sidebarCollapsed={sidebarCollapsed}
-          onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+          isMobileViewport={isMobileViewport}
+          onToggleSidebar={handleToggleSidebar}
           onNewChat={handleNewChat}
           hasMessages={messages.length > 0}
         />
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="momentum-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {messages.length === 0 ? (
-            <div className="flex h-full items-center justify-center">
+            <div className="flex h-full items-center justify-center px-4">
               <HeroPrompt />
             </div>
           ) : (
@@ -422,7 +481,7 @@ export default function Home() {
           )}
         </div>
 
-        <div className="pb-4">
+        <div className="safe-bottom shrink-0 border-t border-border/60 bg-background/88 backdrop-blur-xl">
           <ChatInput
             onSend={handleSend}
             disabled={inputDisabled}
@@ -460,7 +519,7 @@ function buildMessageFormData({
 
 function FooterDisclosure() {
   return (
-    <p className="px-6 text-center text-xs leading-5 text-muted-foreground">
+    <p className="px-4 text-center text-[11px] leading-5 text-muted-foreground sm:px-6 sm:text-xs">
       By messaging MeGPT, a human, you agree to our{" "}
       <Link
         href="/terms"

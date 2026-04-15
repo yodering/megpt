@@ -36,8 +36,8 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
   const showThinkingState = Boolean(isLoading && lastMessage?.role === "user")
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-3xl px-4 py-4">
+    <div className="flex-1 overflow-y-auto overscroll-contain">
+      <div className="mx-auto max-w-3xl px-3 py-3 sm:px-4 sm:py-4">
         {messages.map((msg, i) => (
           <ChatMessage
             key={msg.key ?? i}

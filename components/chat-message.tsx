@@ -28,19 +28,19 @@ export function ChatMessage({
   return (
     <div
       className={cn(
-        "group flex gap-4 py-4",
+        "group flex gap-3 py-3 sm:gap-4 sm:py-4",
         role === "user" ? "justify-end" : "justify-start"
       )}
     >
       <div
         className={cn(
-          "flex max-w-[70%] flex-col gap-2",
+          "flex max-w-[88%] flex-col gap-2 sm:max-w-[78%] lg:max-w-[70%]",
           role === "user" ? "items-end" : "items-start"
         )}
       >
         <div
           className={cn(
-            "rounded-3xl px-5 py-2.5",
+            "w-full rounded-[1.5rem] px-4 py-2.5 sm:px-5",
             role === "user"
               ? "bg-card text-card-foreground"
               : "bg-transparent text-foreground"
@@ -52,10 +52,10 @@ export function ChatMessage({
               <img
                 src={imageUrl}
                 alt={content || "Operator reply image"}
-                className="mb-3 max-h-[28rem] rounded-2xl border border-border object-cover"
+                className="mb-3 max-h-[22rem] w-full rounded-2xl border border-border object-cover sm:max-h-[28rem]"
               />
               {content ? (
-                <p className="whitespace-pre-wrap text-[15px] leading-relaxed">
+                <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
                   {content}
                 </p>
               ) : null}
@@ -70,14 +70,14 @@ export function ChatMessage({
           ) : role === "assistant" && isNew ? (
             <AnimatedAssistantText content={content} />
           ) : (
-            <p className="whitespace-pre-wrap text-[15px] leading-relaxed">
+            <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
               {content}
             </p>
           )}
         </div>
 
         {role === "assistant" && !isStreaming && contentType !== "image" && content ? (
-          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <div className="flex items-center gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
             <Button
               variant="ghost"
               size="icon"

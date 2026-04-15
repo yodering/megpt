@@ -36,7 +36,7 @@ export function HeroPrompt() {
 
   return (
     <div className="flex h-full flex-col items-center justify-center">
-      <div className="mb-8 flex min-h-16 items-center justify-center px-6 text-center">
+      <div className="mb-6 flex min-h-16 items-center justify-center px-4 text-center sm:mb-8 sm:px-6">
         <AnimatePresence mode="wait">
           <motion.h1
             key={rotatingPrompts[activePromptIndex]}
@@ -44,7 +44,7 @@ export function HeroPrompt() {
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             exit={{ opacity: 0, y: -10, filter: "blur(6px)" }}
             transition={{ duration: 0.32, ease: "easeOut" }}
-            className="text-2xl font-medium text-foreground"
+            className="text-xl font-medium text-foreground sm:text-2xl"
           >
             {rotatingPrompts[activePromptIndex]}
           </motion.h1>

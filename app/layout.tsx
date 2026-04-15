@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { Providers } from "@/components/providers"
 import "./globals.css"
@@ -46,6 +46,14 @@ export const metadata: Metadata = {
     title: "MeGPT",
     description: "ChatGPT but a little different",
   },
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 }
 
 export default function RootLayout({
