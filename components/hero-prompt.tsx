@@ -1,54 +1,37 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { AnimatePresence, motion } from "motion/react"
+import { useState } from "react"
 
 const rotatingPrompts = [
+  "Ready when you are.",
   "What can I help with?",
-  "Plan a weekend trip to Montreal",
-  "Explain this code step by step",
-  "Draft a crisp follow-up email",
-  "Turn my rough notes into a summary",
-  "Compare React Server Components and client components",
-  "Outline a launch checklist for a new feature",
-  "Help me write cleaner TypeScript",
-  "Summarize a long thread into key actions",
-  "Map out a study plan for the next two weeks",
-  "Rewrite this paragraph so it sounds more confident",
-  "Brainstorm app ideas I could build this weekend",
-  "Break a big project into smaller next steps",
-  "Help me prepare for a product design interview",
-  "Turn meeting notes into a clear action list",
+  "Ask anything.",
+  "Start wherever you want.",
+  "What are we working on?",
+  "Tell me what you need.",
+  "How can I help today?",
+  "What should we figure out?",
+  "What do you want to make progress on?",
+  "What can I help you untangle?",
+  "What are you trying to solve?",
+  "What do you want to work through?",
+  "Where do you want to begin?",
+  "What needs a clearer answer?",
+  "What are you thinking through?",
+  "What would be useful right now?",
 ]
 
 export function HeroPrompt() {
-  const [activePromptIndex, setActivePromptIndex] = useState(0)
-
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setActivePromptIndex((currentIndex) =>
-        (currentIndex + 1) % rotatingPrompts.length
-      )
-    }, 6000)
-
-    return () => window.clearInterval(interval)
-  }, [])
+  const [prompt] = useState(
+    () => rotatingPrompts[Math.floor(Math.random() * rotatingPrompts.length)]
+  )
 
   return (
     <div className="flex h-full flex-col items-center justify-center">
       <div className="mb-6 flex min-h-16 items-center justify-center px-4 text-center sm:mb-8 sm:px-6">
-        <AnimatePresence mode="wait">
-          <motion.h1
-            key={rotatingPrompts[activePromptIndex]}
-            initial={{ opacity: 0, y: 10, filter: "blur(6px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: -10, filter: "blur(6px)" }}
-            transition={{ duration: 0.32, ease: "easeOut" }}
-            className="text-xl font-medium text-foreground sm:text-2xl"
-          >
-            {rotatingPrompts[activePromptIndex]}
-          </motion.h1>
-        </AnimatePresence>
+        <h1 className="max-w-[18ch] text-[clamp(2rem,5vw,3.25rem)] font-medium tracking-[-0.04em] text-foreground">
+          {prompt}
+        </h1>
       </div>
     </div>
   )

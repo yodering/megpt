@@ -224,7 +224,7 @@ export function ChatInput({
         </div>
       </form>
 
-      <p className="mt-2 text-center text-xs text-muted-foreground">
+      <p className="mt-2 px-2 text-center text-[11px] leading-4 text-muted-foreground sm:text-xs sm:leading-5">
         {helperText}
         {typeof maxLength === "number" ? ` ${value.length}/${maxLength}` : ""}
       </p>
