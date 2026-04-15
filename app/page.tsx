@@ -487,7 +487,7 @@ export default function Home() {
             disabled={inputDisabled}
             placeholder={isAwaitingReply ? "MeGPT is still working..." : "Ask anything"}
             maxLength={MESSAGE_MAX_CHARS}
-            helperText={composerNotice ?? "MeGPT can make mistakes. Check important info."}
+            helperText={composerNotice}
             focusToken={chatInputFocusToken}
           />
           <FooterDisclosure />

@@ -14,7 +14,7 @@ interface ChatInputProps {
   onSend: (payload: ComposerPayload) => Promise<boolean>
   disabled?: boolean
   placeholder?: string
-  helperText?: string
+  helperText?: string | null
   maxLength?: number
   focusToken?: number
 }
@@ -23,7 +23,7 @@ export function ChatInput({
   onSend,
   disabled,
   placeholder = "Ask anything",
-  helperText = "MeGPT can make mistakes. Check important info.",
+  helperText = null,
   maxLength,
   focusToken,
 }: ChatInputProps) {
@@ -224,10 +224,11 @@ export function ChatInput({
         </div>
       </form>
 
-      <p className="mt-2 px-2 text-center text-[11px] leading-4 text-muted-foreground sm:text-xs sm:leading-5">
-        {helperText}
-        {typeof maxLength === "number" ? ` ${value.length}/${maxLength}` : ""}
-      </p>
+      {helperText ? (
+        <p className="mt-2 px-2 text-center text-[11px] leading-4 text-muted-foreground sm:text-xs sm:leading-5">
+          {helperText}
+        </p>
+      ) : null}
     </div>
   )
 }
