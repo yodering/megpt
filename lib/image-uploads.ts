@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto"
-import { mkdir, unlink, writeFile } from "fs/promises"
+import { mkdir, readFile, unlink, writeFile } from "fs/promises"
 import path from "path"
 import sharp from "sharp"
 
@@ -117,11 +117,39 @@ async function normalizeRemoteImageBufferForBrowserCompatibility(buffer: Buffer)
 }
 
 export function getUploadedImageFilePath(imageUrl: string) {
-  if (!imageUrl.startsWith("/uploads/")) {
+  const match = imageUrl.match(/^\/(?:api\/)?uploads\/([^/?#]+)$/)
+  if (!match) {
     return null
   }
 
-  return path.join(process.cwd(), "public", imageUrl.replace(/^\/+/, ""))
+  return path.join(uploadDirectory, match[1])
+}
+
+export function getMimeTypeForStoredImagePath(filePath: string) {
+  return getMimeTypeForFileName(filePath)
+}
+
+export async function readUploadedImageByUrl(imageUrl: string) {
+  const filePath = getUploadedImageFilePath(imageUrl)
+  if (!filePath) {
+    return null
+  }
+
+  const mimeType = getMimeTypeForStoredImagePath(filePath)
+  if (!mimeType) {
+    return null
+  }
+
+  const buffer = await readFile(filePath).catch(() => null)
+  if (!buffer) {
+    return null
+  }
+
+  return {
+    buffer,
+    mimeType,
+    filePath,
+  }
 }
 
 export async function deleteUploadedImageByUrl(imageUrl: string | null | undefined) {
