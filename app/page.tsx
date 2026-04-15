@@ -1,5 +1,6 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
 import { useEffect, useRef, useState } from "react"
@@ -7,8 +8,15 @@ import { Sidebar } from "@/components/sidebar"
 import { ChatHeader } from "@/components/chat-header"
 import { ChatInput, type ComposerPayload } from "@/components/chat-input"
 import { ChatMessages } from "@/components/chat-messages"
-import { HeroPrompt } from "@/components/hero-prompt"
 import { MESSAGE_MAX_CHARS } from "@/lib/message-limit"
+
+const HeroPrompt = dynamic(
+  () => import("@/components/hero-prompt").then((module) => module.HeroPrompt),
+  {
+    ssr: false,
+    loading: () => <div className="mb-6 min-h-16" />,
+  }
+)
 
 interface Message {
   key: string

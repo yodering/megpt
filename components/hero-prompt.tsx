@@ -6,19 +6,17 @@ const rotatingPrompts = [
   "Ready when you are.",
   "What can I help with?",
   "Ask anything.",
-  "Start wherever you want.",
-  "What are we working on?",
+  "Where should we start?",
+  "What are we solving?",
   "Tell me what you need.",
   "How can I help today?",
   "What should we figure out?",
-  "What do you want to make progress on?",
-  "What can I help you untangle?",
+  "What are you working on?",
   "What are you trying to solve?",
-  "What do you want to work through?",
   "Where do you want to begin?",
-  "What needs a clearer answer?",
+  "What needs an answer?",
   "What are you thinking through?",
-  "What would be useful right now?",
+  "What would help right now?",
 ]
 
 export function HeroPrompt() {
@@ -29,7 +27,7 @@ export function HeroPrompt() {
   return (
     <div className="flex h-full flex-col items-center justify-center">
       <div className="mb-6 flex min-h-16 items-center justify-center px-4 text-center sm:mb-8 sm:px-6">
-        <h1 className="max-w-[18ch] text-[clamp(2rem,5vw,3.25rem)] font-normal tracking-[-0.045em] text-foreground">
+        <h1 className="max-w-none whitespace-nowrap text-[clamp(1.35rem,2.8vw,2.15rem)] font-normal tracking-[-0.04em] text-foreground">
           {prompt}
         </h1>
       </div>

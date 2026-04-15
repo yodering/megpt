@@ -2,10 +2,12 @@
 
 import { createContext, useContext, useSyncExternalStore } from "react"
 
-type Theme = "light" | "dark"
+type Theme = "light" | "dark" | "system"
+type ResolvedTheme = "light" | "dark"
 
 interface ThemeContextValue {
   theme: Theme
+  resolvedTheme: ResolvedTheme
   setTheme: (theme: Theme) => void
   toggleTheme: () => void
 }
@@ -15,11 +17,35 @@ const STORAGE_KEY = "megpt-theme"
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 const listeners = new Set<() => void>()
 
+function getStoredThemePreference(): Theme {
+  if (typeof window === "undefined") {
+    return "system"
+  }
+
+  const storedTheme = window.localStorage.getItem(STORAGE_KEY)
+  return storedTheme === "light" || storedTheme === "dark" || storedTheme === "system"
+    ? storedTheme
+    : "system"
+}
+
+function resolveTheme(theme: Theme): ResolvedTheme {
+  if (theme === "light" || theme === "dark") {
+    return theme
+  }
+
+  if (typeof window === "undefined") {
+    return "dark"
+  }
+
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+}
+
 function applyTheme(theme: Theme) {
   const root = document.documentElement
+  const resolvedTheme = resolveTheme(theme)
   root.classList.remove("light", "dark")
-  root.classList.add(theme)
-  root.style.colorScheme = theme
+  root.classList.add(resolvedTheme)
+  root.style.colorScheme = resolvedTheme
 }
 
 function emitChange() {
@@ -27,6 +53,10 @@ function emitChange() {
 }
 
 function getSnapshot(): Theme {
+  return getStoredThemePreference()
+}
+
+function getResolvedSnapshot(): ResolvedTheme {
   if (typeof document === "undefined") {
     return "dark"
   }
@@ -44,8 +74,8 @@ function subscribe(listener: () => void) {
   const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
 
   const handleMediaChange = (event: MediaQueryListEvent) => {
-    const storedTheme = window.localStorage.getItem(STORAGE_KEY)
-    if (storedTheme === "light" || storedTheme === "dark") return
+    const storedTheme = getStoredThemePreference()
+    if (storedTheme !== "system") return
 
     applyTheme(event.matches ? "dark" : "light")
     emitChange()
@@ -55,12 +85,9 @@ function subscribe(listener: () => void) {
     if (event.key !== STORAGE_KEY) return
 
     const nextTheme =
-      event.newValue === "light" || event.newValue === "dark"
+      event.newValue === "light" || event.newValue === "dark" || event.newValue === "system"
         ? event.newValue
-        : mediaQuery.matches
-          ? "dark"
-          : "light"
-
+        : "system"
     applyTheme(nextTheme)
     emitChange()
   }
@@ -79,7 +106,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = useSyncExternalStore(
     subscribe,
     getSnapshot,
-    (): Theme => "dark"
+    (): Theme => "system"
+  )
+  const resolvedTheme = useSyncExternalStore(
+    subscribe,
+    getResolvedSnapshot,
+    (): ResolvedTheme => "dark"
   )
 
   const setTheme = (nextTheme: Theme) => {
@@ -92,8 +124,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     <ThemeContext.Provider
       value={{
         theme,
+        resolvedTheme,
         setTheme,
-        toggleTheme: () => setTheme(getSnapshot() === "dark" ? "light" : "dark"),
+        toggleTheme: () => setTheme(getResolvedSnapshot() === "dark" ? "light" : "dark"),
       }}
     >
       {children}

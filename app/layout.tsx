@@ -18,16 +18,20 @@ const themeScript = `
   try {
     const storageKey = "megpt-theme";
     const storedTheme = window.localStorage.getItem(storageKey);
-    const theme =
-      storedTheme === "light" || storedTheme === "dark"
+    const themePreference =
+      storedTheme === "light" || storedTheme === "dark" || storedTheme === "system"
         ? storedTheme
-        : window.matchMedia("(prefers-color-scheme: dark)").matches
+        : "system";
+    const resolvedTheme =
+      themePreference === "system"
+        ? window.matchMedia("(prefers-color-scheme: dark)").matches
           ? "dark"
-          : "light";
+          : "light"
+        : themePreference;
     const root = document.documentElement;
     root.classList.remove("light", "dark");
-    root.classList.add(theme);
-    root.style.colorScheme = theme;
+    root.classList.add(resolvedTheme);
+    root.style.colorScheme = resolvedTheme;
   } catch {}
 })();
 `
