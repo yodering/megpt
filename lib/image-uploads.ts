@@ -10,6 +10,9 @@ const allowedMimeTypes = new Map<string, string>([
   ["image/gif", ".gif"],
   ["image/avif", ".avif"],
 ])
+const allowedExtensions = new Map<string, string>(
+  [...allowedMimeTypes.entries()].map(([mimeType, extension]) => [extension, mimeType])
+)
 
 const fallbackUploadLimit = 10 * 1024 * 1024
 const configuredUploadLimit = Number(process.env.MAX_IMAGE_UPLOAD_BYTES ?? fallbackUploadLimit)
@@ -21,6 +24,51 @@ export const MAX_IMAGE_UPLOAD_BYTES =
 
 function getExtensionForMimeType(mimeType: string) {
   return allowedMimeTypes.get(mimeType) ?? null
+}
+
+function normalizeMimeType(mimeType: string | null | undefined) {
+  if (!mimeType) return null
+
+  const normalized = mimeType.split(";")[0]?.trim().toLowerCase() ?? ""
+  if (!normalized) return null
+
+  if (normalized === "image/jpg") {
+    return "image/jpeg"
+  }
+
+  return normalized
+}
+
+function getMimeTypeForFileName(fileName: string | null | undefined) {
+  if (!fileName) return null
+
+  const extension = path.extname(fileName).toLowerCase()
+  return allowedExtensions.get(extension) ?? null
+}
+
+function getMimeTypeForUrl(imageUrl: string) {
+  try {
+    const url = new URL(imageUrl)
+    return getMimeTypeForFileName(url.pathname)
+  } catch {
+    return getMimeTypeForFileName(imageUrl)
+  }
+}
+
+export function resolveSupportedImageMimeType(options: {
+  mimeType?: string | null
+  fileName?: string | null
+  imageUrl?: string | null
+}) {
+  const normalizedMimeType = normalizeMimeType(options.mimeType)
+  if (normalizedMimeType && allowedMimeTypes.has(normalizedMimeType)) {
+    return normalizedMimeType
+  }
+
+  return (
+    getMimeTypeForFileName(options.fileName) ??
+    (options.imageUrl ? getMimeTypeForUrl(options.imageUrl) : null)
+  )
 }
 
 async function writeImageBuffer(buffer: Buffer, mimeType: string) {
@@ -60,7 +108,8 @@ export async function deleteUploadedImageByUrl(imageUrl: string | null | undefin
 }
 
 export async function saveUploadedImage(file: File) {
-  if (!allowedMimeTypes.has(file.type)) {
+  const mimeType = resolveSupportedImageMimeType({ mimeType: file.type, fileName: file.name })
+  if (!mimeType) {
     throw new Error("Only JPG, PNG, WEBP, GIF, and AVIF images are supported.")
   }
 
@@ -72,19 +121,27 @@ export async function saveUploadedImage(file: File) {
     throw new Error("Images must be 10 MB or smaller.")
   }
 
-  const extension = getExtensionForMimeType(file.type)
   const buffer = Buffer.from(await file.arrayBuffer())
-  return writeImageBuffer(buffer, extension ? file.type : "")
+  return writeImageBuffer(buffer, mimeType)
 }
 
-export async function saveRemoteImage(imageUrl: string, mimeType: string | null | undefined) {
-  if (!mimeType || !allowedMimeTypes.has(mimeType)) {
-    throw new Error("Only JPG, PNG, WEBP, GIF, and AVIF images are supported.")
-  }
-
+export async function saveRemoteImage(
+  imageUrl: string,
+  mimeType: string | null | undefined,
+  fileName?: string | null
+) {
   const response = await fetch(imageUrl)
   if (!response.ok) {
     throw new Error(`Failed to fetch remote image (${response.status}).`)
+  }
+
+  const resolvedMimeType = resolveSupportedImageMimeType({
+    mimeType: mimeType ?? response.headers.get("content-type"),
+    fileName,
+    imageUrl,
+  })
+  if (!resolvedMimeType) {
+    throw new Error("Only JPG, PNG, WEBP, GIF, and AVIF images are supported.")
   }
 
   const buffer = Buffer.from(await response.arrayBuffer())
@@ -96,5 +153,5 @@ export async function saveRemoteImage(imageUrl: string, mimeType: string | null 
     throw new Error("Images must be 10 MB or smaller.")
   }
 
-  return writeImageBuffer(buffer, mimeType)
+  return writeImageBuffer(buffer, resolvedMimeType)
 }

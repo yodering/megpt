@@ -14,7 +14,11 @@ import {
   getDiscordThreadByThreadId,
   upsertDiscordThread,
 } from "@/lib/discord-threads"
-import { getUploadedImageFilePath, saveRemoteImage } from "@/lib/image-uploads"
+import {
+  getUploadedImageFilePath,
+  resolveSupportedImageMimeType,
+  saveRemoteImage,
+} from "@/lib/image-uploads"
 import { sendToClient } from "@/lib/sse-broker"
 
 declare global {
@@ -148,6 +152,20 @@ function withoutMentions(message: MessageCreateOptions): MessageCreateOptions {
   }
 }
 
+function isSupportedDiscordImageAttachment(attachment: {
+  contentType?: string | null
+  name?: string | null
+  url: string
+}) {
+  return Boolean(
+    resolveSupportedImageMimeType({
+      mimeType: attachment.contentType,
+      fileName: attachment.name,
+      imageUrl: attachment.url,
+    })
+  )
+}
+
 function formatNewThreadNotification(
   config: NonNullable<ReturnType<typeof getDiscordConfig>>,
   conversation: ConversationIdentity,
@@ -266,8 +284,8 @@ async function bindDiscordHandlers(client: Client) {
     if (!mapping) return
 
     const content = message.content.trim()
-    const imageAttachments = [...message.attachments.values()].filter((attachment) =>
-      attachment.contentType?.startsWith("image/")
+    const imageAttachments = [...message.attachments.values()].filter(
+      isSupportedDiscordImageAttachment
     )
     if (!content && imageAttachments.length === 0) return
 
@@ -286,7 +304,8 @@ async function bindDiscordHandlers(client: Client) {
       try {
         const savedImage = await saveRemoteImage(
           attachment.url,
-          attachment.contentType ?? undefined
+          attachment.contentType ?? undefined,
+          attachment.name
         )
         imageUrl = savedImage.publicUrl
       } catch (error) {
