@@ -4,7 +4,7 @@ export type ConversationSummary = {
   id: number
   userEmail: string
   userName: string | null
-  status: string
+  status: ConversationStatus
   isPinned: boolean
   lastMessageAt: string
   lastMessageBody: string | null
@@ -25,13 +25,23 @@ export type ConversationRecord = {
   id: number
   userEmail: string
   userName: string | null
-  status: string
+  status: ConversationStatus
   isPinned: boolean
   pinnedAt: string | null
   createdAt: string
   updatedAt: string
   lastMessageAt: string
 }
+
+export type ConversationStatus = "open" | "queued" | "awaiting_admin" | "awaiting_user"
+
+export const ACTIVE_OPERATOR_STATUS: ConversationStatus = "awaiting_admin"
+export const QUEUED_OPERATOR_STATUS: ConversationStatus = "queued"
+export const WAITING_ON_USER_STATUS: ConversationStatus = "awaiting_user"
+export const PENDING_OPERATOR_STATUSES: ConversationStatus[] = [
+  ACTIVE_OPERATOR_STATUS,
+  QUEUED_OPERATOR_STATUS,
+]
 
 export async function getOrCreateConversationForUser(
   userEmail: string,
@@ -142,6 +152,7 @@ export async function createMessage(
   options?: {
     contentType?: "text" | "image"
     imageUrl?: string | null
+    nextStatus?: ConversationStatus
   }
 ) {
   await ensureAppSchema()
@@ -163,7 +174,9 @@ export async function createMessage(
     [conversationId, senderType, body, contentType, imageUrl]
   )
 
-  const nextStatus = senderType === "user" ? "awaiting_admin" : "awaiting_user"
+  const nextStatus =
+    options?.nextStatus ??
+    (senderType === "user" ? ACTIVE_OPERATOR_STATUS : WAITING_ON_USER_STATUS)
 
   await pool.query(
     `UPDATE conversations
@@ -367,21 +380,81 @@ export async function countAwaitingAdminConversations() {
   const result = await pool.query<{ count: string }>(
     `SELECT COUNT(*)::text AS count
      FROM conversations
-     WHERE status = 'awaiting_admin'`
+     WHERE status = $1`,
+    [ACTIVE_OPERATOR_STATUS]
   )
 
   return Number(result.rows[0]?.count ?? 0)
 }
 
-export async function countAwaitingAdminConversationsForUser(userEmail: string) {
+export async function countPendingOperatorConversationsForUser(userEmail: string) {
   await ensureAppSchema()
   const pool = getDbPool()
   const result = await pool.query<{ count: string }>(
     `SELECT COUNT(*)::text AS count
      FROM conversations
-     WHERE status = 'awaiting_admin' AND "userEmail" = $1`,
-    [userEmail]
+     WHERE status = ANY($1::text[]) AND "userEmail" = $2`,
+    [PENDING_OPERATOR_STATUSES, userEmail]
   )
 
   return Number(result.rows[0]?.count ?? 0)
+}
+
+export async function promoteOldestQueuedConversation(maxActiveConversations: number) {
+  await ensureAppSchema()
+  const pool = getDbPool()
+  const client = await pool.connect()
+
+  try {
+    await client.query("BEGIN")
+    await client.query("SELECT pg_advisory_xact_lock($1)", [345001])
+
+    const activeCountResult = await client.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count
+       FROM conversations
+       WHERE status = $1`,
+      [ACTIVE_OPERATOR_STATUS]
+    )
+
+    if (Number(activeCountResult.rows[0]?.count ?? 0) >= maxActiveConversations) {
+      await client.query("COMMIT")
+      return null
+    }
+
+    const promoted = await client.query<ConversationRecord>(
+      `WITH next_conversation AS (
+         SELECT id
+         FROM conversations
+         WHERE status = $1
+         ORDER BY "lastMessageAt" ASC, id ASC
+         LIMIT 1
+         FOR UPDATE SKIP LOCKED
+       )
+       UPDATE conversations c
+       SET
+         status = $2,
+         "updatedAt" = NOW()
+       FROM next_conversation
+       WHERE c.id = next_conversation.id
+       RETURNING
+         c.id,
+         c."userEmail",
+         c."userName",
+         c.status,
+         c."isPinned" AS "isPinned",
+         c."pinnedAt" AS "pinnedAt",
+         c."createdAt",
+         c."updatedAt",
+         c."lastMessageAt"`,
+      [QUEUED_OPERATOR_STATUS, ACTIVE_OPERATOR_STATUS]
+    )
+
+    await client.query("COMMIT")
+    return promoted.rows[0] ?? null
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined)
+    throw error
+  } finally {
+    client.release()
+  }
 }

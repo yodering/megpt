@@ -43,6 +43,7 @@ interface Conversation {
 
 interface ConversationSummary {
   id: number
+  status: string
   isPinned: boolean
   lastMessageAt: string
   lastMessageBody: string | null
@@ -79,8 +80,11 @@ export default function Home() {
     session?.user?.email ??
     (sessionStatus === "unauthenticated" && guestId ? `guest:${guestId}` : null)
   const identityReady = identityKey !== null
-  const isAwaitingReply = conversation?.status === "awaiting_admin"
-  const inputDisabled = !identityReady || isLoading || isAwaitingReply
+  const activeConversationStatus = conversation?.status ?? null
+  const hasPendingConversation = conversations.some(
+    (item) => item.status === "awaiting_admin" || item.status === "queued"
+  )
+  const inputDisabled = !identityReady || isLoading || hasPendingConversation
   const guestHeaders: Record<string, string> | undefined = guestId
     ? { "x-guest-id": guestId }
     : undefined
@@ -179,6 +183,21 @@ export default function Home() {
             }
           : prev
       )
+      setConversations((prev) =>
+        prev.map((item) =>
+          item.id === conversationId
+            ? {
+                ...item,
+                status: "awaiting_user",
+                lastMessageAt: data.message.createdAt ?? new Date().toISOString(),
+                lastMessageBody:
+                  data.message.body ||
+                  (data.message.contentType === "image" ? "[Image]" : null),
+                messageCount: item.messageCount + 1,
+              }
+            : item
+        )
+      )
       setComposerNotice(null)
       setIsLoading(false)
     }
@@ -257,9 +276,25 @@ export default function Home() {
           prev
             ? {
                 ...prev,
-                status: "awaiting_admin",
+                status:
+                  typeof data?.error === "string" && data.error.includes("queued")
+                    ? "queued"
+                    : "awaiting_admin",
               }
             : prev
+        )
+        setConversations((prev) =>
+          prev.map((item) =>
+            item.id === conversationId
+              ? {
+                  ...item,
+                  status:
+                    typeof data?.error === "string" && data.error.includes("queued")
+                      ? "queued"
+                      : "awaiting_admin",
+                }
+              : item
+          )
         )
       }
       setComposerNotice(
@@ -307,6 +342,7 @@ export default function Home() {
       return [
         {
           id: data.conversation.id,
+          status: data.conversation.status,
           isPinned: existingConversation?.isPinned ?? false,
           lastMessageAt: new Date().toISOString(),
           lastMessageBody: text || (image ? "[Image]" : null),
@@ -466,9 +502,16 @@ export default function Home() {
           <ChatInput
             onSend={handleSend}
             disabled={inputDisabled}
-            placeholder={isAwaitingReply ? "MeGPT is still working..." : "Ask anything"}
+            placeholder={hasPendingConversation ? "MeGPT is still working..." : "Ask anything"}
             maxLength={MESSAGE_MAX_CHARS}
-            helperText={composerNotice}
+            helperText={
+              hasPendingConversation
+                ? activeConversationStatus === "awaiting_admin" ||
+                    activeConversationStatus === "queued"
+                  ? "Your message is being reviewed."
+                  : "Another conversation is already waiting for a reply."
+                : composerNotice
+            }
             focusToken={chatInputFocusToken}
           />
           <FooterDisclosure />

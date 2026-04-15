@@ -57,8 +57,8 @@ Railway usually injects a usable connection string after the services are linked
 
 Optional reply-capacity controls:
 
-- `MAX_PENDING_CONVERSATIONS`: total conversations allowed in `awaiting_admin` before new messages are rejected
-- `MAX_PENDING_CONVERSATIONS_PER_USER`: max conversations one user can have waiting for a reply
+- `MAX_PENDING_CONVERSATIONS`: total conversations allowed in active `awaiting_admin` before new inbound messages are placed into `queued`
+- `MAX_PENDING_CONVERSATIONS_PER_USER`: max conversations one user can have in `awaiting_admin` or `queued`
 
 ## Discord operator inbox
 
@@ -75,6 +75,8 @@ The app now supports Discord as the operator surface while keeping Postgres as t
 Behavior:
 
 - User messages from the app are saved to Postgres and mirrored into a Discord thread.
+- When the active operator inbox is full, new user messages are accepted into a `queued` state instead of being rejected.
+- Queued conversations are promoted into `awaiting_admin` in oldest-first order as active slots open up.
 - Mirrored user messages can include an optional user or role mention, which is useful if you want phone push notifications for every new inbound message.
 - Replies written in that Discord thread are saved back into Postgres and streamed to the user UI.
 - Image attachments in Discord replies are saved back into Postgres and displayed inline in the user UI.

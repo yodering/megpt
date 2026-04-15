@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { promoteNextQueuedConversation } from "@/lib/conversation-queue"
 import { deleteDiscordThreadForConversation, ensureDiscordBot } from "@/lib/discord-bot"
 import {
   deleteConversationForUser,
@@ -56,6 +57,10 @@ export async function DELETE(
   await Promise.all(
     messages.map((message) => deleteUploadedImageByUrl(message.imageUrl))
   )
+
+  await promoteNextQueuedConversation().catch((error) => {
+    console.error("Failed to promote queued conversation after delete", error)
+  })
 
   const conversations = await listConversationsForUser(identity.userEmail)
 

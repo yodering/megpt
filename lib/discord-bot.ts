@@ -268,6 +268,15 @@ async function syncThreadPresentation(
   }
 }
 
+async function promoteQueuedConversationAfterCapacityChange() {
+  try {
+    const { promoteNextQueuedConversation } = await import("@/lib/conversation-queue")
+    await promoteNextQueuedConversation()
+  } catch (error) {
+    console.error("Failed to promote queued conversation", error)
+  }
+}
+
 async function bindDiscordHandlers(client: Client) {
   if (globalThis.discordHandlersBound) return
 
@@ -326,6 +335,8 @@ async function bindDiscordHandlers(client: Client) {
     for (const savedMessage of savedMessages) {
       sendToClient(String(conversation.id), savedMessage)
     }
+
+    await promoteQueuedConversationAfterCapacityChange()
   })
 
   globalThis.discordHandlersBound = true
