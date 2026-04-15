@@ -29,7 +29,7 @@ export function HeroPrompt() {
   return (
     <div className="flex h-full flex-col items-center justify-center">
       <div className="mb-6 flex min-h-16 items-center justify-center px-4 text-center sm:mb-8 sm:px-6">
-        <h1 className="max-w-[18ch] text-[clamp(2rem,5vw,3.25rem)] font-medium tracking-[-0.04em] text-foreground">
+        <h1 className="max-w-[18ch] text-[clamp(2rem,5vw,3.25rem)] font-normal tracking-[-0.045em] text-foreground">
           {prompt}
         </h1>
       </div>

@@ -519,7 +519,7 @@ function buildMessageFormData({
 
 function FooterDisclosure() {
   return (
-    <p className="mx-auto max-w-[34rem] px-6 text-center text-[11px] leading-4 text-muted-foreground/88 sm:px-6 sm:text-xs sm:leading-5">
+    <p className="mx-auto max-w-[30rem] px-6 text-center text-[10px] leading-4 text-muted-foreground/80 sm:text-[11px] sm:leading-4">
       By messaging MeGPT, a human, you agree to our{" "}
       <Link
         href="/terms"
@@ -534,7 +534,6 @@ function FooterDisclosure() {
       >
         Privacy Policy
       </Link>
-      .
     </p>
   )
 }
