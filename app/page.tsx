@@ -124,27 +124,6 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    const root = document.documentElement
-
-    const updateViewportHeight = () => {
-      const nextHeight = window.visualViewport?.height ?? window.innerHeight
-      root.style.setProperty("--app-height", `${nextHeight}px`)
-    }
-
-    updateViewportHeight()
-    window.addEventListener("resize", updateViewportHeight)
-    window.visualViewport?.addEventListener("resize", updateViewportHeight)
-    window.visualViewport?.addEventListener("scroll", updateViewportHeight)
-
-    return () => {
-      window.removeEventListener("resize", updateViewportHeight)
-      window.visualViewport?.removeEventListener("resize", updateViewportHeight)
-      window.visualViewport?.removeEventListener("scroll", updateViewportHeight)
-      root.style.removeProperty("--app-height")
-    }
-  }, [])
-
-  useEffect(() => {
     if (!identityReady) return
 
     const requestId = beginConversationRequest()
@@ -442,10 +421,7 @@ export default function Home() {
   }
 
   return (
-    <div
-      className="flex bg-background"
-      style={{ minHeight: "var(--app-height, 100dvh)" }}
-    >
+    <div className="flex min-h-dvh bg-background">
       <Sidebar
         collapsed={sidebarCollapsed}
         mobileOpen={mobileSidebarOpen}
@@ -459,10 +435,7 @@ export default function Home() {
         onTogglePinConversation={handleTogglePinConversation}
       />
 
-      <main
-        className="safe-top flex flex-1 flex-col overflow-hidden"
-        style={{ minHeight: "var(--app-height, 100dvh)" }}
-      >
+      <main className="safe-top flex min-h-dvh flex-1 flex-col overflow-hidden">
         <ChatHeader
           sidebarCollapsed={sidebarCollapsed}
           isMobileViewport={isMobileViewport}
