@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, type FormEvent } from "react"
-import { ArrowUp, Globe, Lightbulb, Paperclip, X } from "lucide-react"
+import { ArrowUp, Paperclip, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -157,63 +157,41 @@ export function ChatInput({
           </div>
         ) : null}
 
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          maxLength={maxLength}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault()
-              void submitComposer()
-            }
-          }}
-          placeholder={placeholder}
-          disabled={isComposerDisabled}
-          rows={1}
-          className={cn(
-            "min-h-[52px] max-h-[200px] w-full resize-none bg-transparent px-4 py-3.5 pr-14 text-[15px] text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50 sm:py-4"
-          )}
-        />
-        <div className="flex items-center justify-between gap-3 px-3 pb-3">
-          <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
-            <Button
-              variant="ghost"
-              size="icon"
-              type="button"
-              className="h-8 w-8 rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
-              title="Upload image"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Paperclip className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              type="button"
-              className="h-8 shrink-0 rounded-full px-3 text-muted-foreground hover:bg-accent hover:text-foreground"
-            >
-              <Globe className="h-4 w-4" />
-              <span className="hidden text-sm sm:inline">Search</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              type="button"
-              className="h-8 shrink-0 rounded-full px-3 text-muted-foreground hover:bg-accent hover:text-foreground"
-            >
-              <Lightbulb className="h-4 w-4" />
-              <span className="hidden text-sm sm:inline">
-                {isComposerDisabled ? "Pending" : "Reason"}
-              </span>
-            </Button>
-          </div>
+        <div className="flex items-end gap-2 px-3 py-2.5 sm:px-4 sm:py-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            type="button"
+            className="h-9 w-9 shrink-0 rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
+            title="Upload image"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Paperclip className="h-5 w-5" />
+          </Button>
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            maxLength={maxLength}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault()
+                void submitComposer()
+              }
+            }}
+            placeholder={placeholder}
+            disabled={isComposerDisabled}
+            rows={1}
+            className={cn(
+              "min-h-[40px] max-h-[160px] w-full resize-none bg-transparent py-2 text-[15px] text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
+            )}
+          />
           <Button
             size="icon"
             type="submit"
             disabled={(!value.trim() && !selectedImage) || isComposerDisabled}
             className={cn(
-              "h-8 w-8 rounded-full transition-colors",
+              "h-9 w-9 shrink-0 rounded-full transition-colors",
               (value.trim() || selectedImage) && !isComposerDisabled
                 ? "bg-foreground text-background hover:bg-foreground/90"
                 : "bg-muted text-muted-foreground"

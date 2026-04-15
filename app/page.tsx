@@ -481,7 +481,7 @@ export default function Home() {
           )}
         </div>
 
-        <div className="safe-bottom shrink-0 border-t border-border/60 bg-background/88 backdrop-blur-xl">
+        <div className="safe-bottom shrink-0 bg-background/88 backdrop-blur-xl">
           <ChatInput
             onSend={handleSend}
             disabled={inputDisabled}
