@@ -34,7 +34,7 @@ function getDiscordConfig() {
   const guildId = process.env.DISCORD_GUILD_ID
   const parentChannelId = process.env.DISCORD_PARENT_CHANNEL_ID
   const notificationChannelId =
-    process.env.DISCORD_NOTIFICATION_CHANNEL_ID ?? parentChannelId
+    process.env.DISCORD_NOTIFICATION_CHANNEL_ID ?? null
   const notificationUserId = process.env.DISCORD_NOTIFICATION_USER_ID ?? null
   const notificationRoleId = process.env.DISCORD_NOTIFICATION_ROLE_ID ?? null
 
@@ -105,14 +105,22 @@ function buildThreadUrl(guildId: string, threadId: string) {
 function buildNotificationMentions(config: NonNullable<ReturnType<typeof getDiscordConfig>>) {
   const mentions: string[] = []
   const parse: ("users" | "roles")[] = []
+  const notificationUserId =
+    config.notificationUserId && /^\d+$/.test(config.notificationUserId)
+      ? config.notificationUserId
+      : null
+  const notificationRoleId =
+    config.notificationRoleId && /^\d+$/.test(config.notificationRoleId)
+      ? config.notificationRoleId
+      : null
 
-  if (config.notificationUserId) {
-    mentions.push(`<@${config.notificationUserId}>`)
+  if (notificationUserId) {
+    mentions.push(`<@${notificationUserId}>`)
     parse.push("users")
   }
 
-  if (config.notificationRoleId) {
-    mentions.push(`<@&${config.notificationRoleId}>`)
+  if (notificationRoleId) {
+    mentions.push(`<@&${notificationRoleId}>`)
     parse.push("roles")
   }
 
@@ -120,11 +128,11 @@ function buildNotificationMentions(config: NonNullable<ReturnType<typeof getDisc
     contentPrefix: mentions.join(" "),
     allowedMentions: {
       parse,
-      users: config.notificationUserId
-        ? [config.notificationUserId as Snowflake]
+      users: notificationUserId
+        ? [notificationUserId as Snowflake]
         : undefined,
-      roles: config.notificationRoleId
-        ? [config.notificationRoleId as Snowflake]
+      roles: notificationRoleId
+        ? [notificationRoleId as Snowflake]
         : undefined,
     },
   }
@@ -214,7 +222,10 @@ async function findOrCreateThread(
   })
 
   await thread.send(formatThreadOpenedMessage(conversation))
-  await sendNewThreadNotification(client, config, conversation, thread)
+
+  if (config.notificationChannelId) {
+    await sendNewThreadNotification(client, config, conversation, thread)
+  }
 
   return thread
 }
