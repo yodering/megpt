@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto"
 import { mkdir, unlink, writeFile } from "fs/promises"
 import path from "path"
+import sharp from "sharp"
 
 const uploadDirectory = path.join(process.cwd(), "public", "uploads")
 const allowedMimeTypes = new Map<string, string>([
@@ -90,6 +91,31 @@ async function writeImageBuffer(buffer: Buffer, mimeType: string) {
   }
 }
 
+async function normalizeRemoteImageBufferForBrowserCompatibility(buffer: Buffer) {
+  const metadata = await sharp(buffer, { animated: true }).metadata()
+  const format = metadata.format?.toLowerCase() ?? null
+
+  if (!format) {
+    throw new Error("Unsupported image type.")
+  }
+
+  if (format === "jpeg" || format === "jpg") {
+    return { buffer, mimeType: "image/jpeg" }
+  }
+
+  if (format === "png") {
+    return { buffer, mimeType: "image/png" }
+  }
+
+  if (format === "gif") {
+    return { buffer, mimeType: "image/gif" }
+  }
+
+  // Normalize newer or inconsistent formats so Safari/mobile rendering is predictable.
+  const normalizedBuffer = await sharp(buffer, { animated: true }).png().toBuffer()
+  return { buffer: normalizedBuffer, mimeType: "image/png" }
+}
+
 export function getUploadedImageFilePath(imageUrl: string) {
   if (!imageUrl.startsWith("/uploads/")) {
     return null
@@ -153,5 +179,9 @@ export async function saveRemoteImage(
     throw new Error("Images must be 10 MB or smaller.")
   }
 
-  return writeImageBuffer(buffer, resolvedMimeType)
+  const normalizedImage = await normalizeRemoteImageBufferForBrowserCompatibility(buffer).catch(
+    () => ({ buffer, mimeType: resolvedMimeType })
+  )
+
+  return writeImageBuffer(normalizedImage.buffer, normalizedImage.mimeType)
 }
