@@ -2,7 +2,9 @@ import { deleteDiscordThreadForConversation } from "@/lib/discord-bot"
 import {
   deleteConversationsForUser,
   listConversationIdsForGuestUsersLastUpdatedBefore,
+  listMessagesForConversation,
 } from "@/lib/conversations"
+import { deleteUploadedImageByUrl } from "@/lib/image-uploads"
 
 const fallbackGuestTtlMinutes = 30
 const configuredGuestTtlMinutes = Number(process.env.GUEST_CONVERSATION_TTL_MINUTES ?? fallbackGuestTtlMinutes)
@@ -27,6 +29,13 @@ export async function cleanupExpiredGuestConversations() {
   await Promise.all(
     conversationIds.map((conversationId) => deleteDiscordThreadForConversation(conversationId))
   )
+
+  const expiredMessages = await Promise.all(
+    conversationIds.map((conversationId) => listMessagesForConversation(conversationId))
+  )
+  const imageUrls = [...new Set(expiredMessages.flat().map((message) => message.imageUrl))]
+
+  await Promise.all(imageUrls.map((imageUrl) => deleteUploadedImageByUrl(imageUrl)))
 
   await deleteConversationsForUser("guest:%", { patternMatch: true, updatedBefore: expiredBefore })
 

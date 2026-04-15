@@ -34,7 +34,18 @@ const themeScript = `
 
 export const metadata: Metadata = {
   title: "MeGPT",
-  description: "MeGPT messaging and operator dashboard",
+  description: "ChatGPT but a little different",
+  openGraph: {
+    title: "MeGPT",
+    description: "ChatGPT but a little different",
+    url: "https://megpt.boo",
+    siteName: "MeGPT",
+  },
+  twitter: {
+    card: "summary",
+    title: "MeGPT",
+    description: "ChatGPT but a little different",
+  },
 }
 
 export default function RootLayout({

@@ -7,14 +7,14 @@ import {
   type TextChannel,
   type ThreadChannel,
 } from "discord.js"
-import { sendToClient } from "@/app/api/sse/route"
 import { createMessage, getConversationById, type ConversationMessage } from "@/lib/conversations"
 import {
   getDiscordThreadByConversationId,
   getDiscordThreadByThreadId,
   upsertDiscordThread,
 } from "@/lib/discord-threads"
-import { getUploadedImageFilePath } from "@/lib/image-uploads"
+import { getUploadedImageFilePath, saveRemoteImage } from "@/lib/image-uploads"
+import { sendToClient } from "@/lib/sse-broker"
 
 declare global {
   var discordClient: Client | undefined
@@ -168,10 +168,22 @@ async function bindDiscordHandlers(client: Client) {
     }
 
     for (const attachment of imageAttachments) {
+      let imageUrl = attachment.url
+
+      try {
+        const savedImage = await saveRemoteImage(
+          attachment.url,
+          attachment.contentType ?? undefined
+        )
+        imageUrl = savedImage.publicUrl
+      } catch (error) {
+        console.error("Failed to store Discord image attachment locally", error)
+      }
+
       savedMessages.push(
         await createMessage(conversation.id, "operator", "", {
           contentType: "image",
-          imageUrl: attachment.url,
+          imageUrl,
         })
       )
     }

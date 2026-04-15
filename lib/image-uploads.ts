@@ -23,6 +23,25 @@ function getExtensionForMimeType(mimeType: string) {
   return allowedMimeTypes.get(mimeType) ?? null
 }
 
+async function writeImageBuffer(buffer: Buffer, mimeType: string) {
+  const extension = getExtensionForMimeType(mimeType)
+  if (!extension) {
+    throw new Error("Unsupported image type.")
+  }
+
+  const fileName = `${randomUUID()}${extension}`
+  const publicUrl = `/uploads/${fileName}`
+  const filePath = path.join(uploadDirectory, fileName)
+
+  await mkdir(uploadDirectory, { recursive: true })
+  await writeFile(filePath, buffer)
+
+  return {
+    filePath,
+    publicUrl,
+  }
+}
+
 export function getUploadedImageFilePath(imageUrl: string) {
   if (!imageUrl.startsWith("/uploads/")) {
     return null
@@ -54,20 +73,28 @@ export async function saveUploadedImage(file: File) {
   }
 
   const extension = getExtensionForMimeType(file.type)
-  if (!extension) {
-    throw new Error("Unsupported image type.")
-  }
-
-  const fileName = `${randomUUID()}${extension}`
-  const publicUrl = `/uploads/${fileName}`
-  const filePath = path.join(uploadDirectory, fileName)
   const buffer = Buffer.from(await file.arrayBuffer())
+  return writeImageBuffer(buffer, extension ? file.type : "")
+}
 
-  await mkdir(uploadDirectory, { recursive: true })
-  await writeFile(filePath, buffer)
-
-  return {
-    filePath,
-    publicUrl,
+export async function saveRemoteImage(imageUrl: string, mimeType: string | null | undefined) {
+  if (!mimeType || !allowedMimeTypes.has(mimeType)) {
+    throw new Error("Only JPG, PNG, WEBP, GIF, and AVIF images are supported.")
   }
+
+  const response = await fetch(imageUrl)
+  if (!response.ok) {
+    throw new Error(`Failed to fetch remote image (${response.status}).`)
+  }
+
+  const buffer = Buffer.from(await response.arrayBuffer())
+  if (buffer.byteLength <= 0) {
+    throw new Error("The remote image is empty.")
+  }
+
+  if (buffer.byteLength > MAX_IMAGE_UPLOAD_BYTES) {
+    throw new Error("Images must be 10 MB or smaller.")
+  }
+
+  return writeImageBuffer(buffer, mimeType)
 }

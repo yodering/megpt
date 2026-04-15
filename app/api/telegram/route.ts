@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { sendToClient } from "@/app/api/sse/route"
+import { sendToClient } from "@/lib/sse-broker"
 import type { ConversationMessage } from "@/lib/conversations"
 
 const TELEGRAM_API = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`
 
-export async function sendToTelegram(text: string, userEmail: string, conversationId: string) {
+async function sendToTelegram(text: string, userEmail: string, conversationId: string) {
   await fetch(`${TELEGRAM_API}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

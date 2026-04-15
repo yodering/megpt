@@ -3,10 +3,12 @@ import { deleteDiscordThreadForConversation, ensureDiscordBot } from "@/lib/disc
 import {
   deleteConversationForUser,
   getConversationByIdForUser,
+  listMessagesForConversation,
   listConversationsForUser,
   setConversationPinnedForUser,
 } from "@/lib/conversations"
 import { cleanupExpiredGuestConversations } from "@/lib/guest-conversations"
+import { deleteUploadedImageByUrl } from "@/lib/image-uploads"
 import { getRequestIdentity } from "@/lib/request-identity"
 
 export const runtime = "nodejs"
@@ -43,12 +45,17 @@ export async function DELETE(
   }
 
   await deleteDiscordThreadForConversation(conversationId)
+  const messages = await listMessagesForConversation(conversationId)
 
   const deleted = await deleteConversationForUser(conversationId, identity.userEmail)
 
   if (!deleted) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
+
+  await Promise.all(
+    messages.map((message) => deleteUploadedImageByUrl(message.imageUrl))
+  )
 
   const conversations = await listConversationsForUser(identity.userEmail)
 
