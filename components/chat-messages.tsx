@@ -16,6 +16,7 @@ interface Message {
 interface ChatMessagesProps {
   messages: Message[]
   isLoading?: boolean
+  onImageLoad?: () => void
 }
 
 const THINKING_LABELS = [
@@ -26,7 +27,11 @@ const THINKING_LABELS = [
   "Checking the wording",
 ]
 
-export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
+export function ChatMessages({
+  messages,
+  isLoading,
+  onImageLoad,
+}: ChatMessagesProps) {
   const renderedMessages = groupRenderableMessages(messages)
   const lastMessage = renderedMessages[renderedMessages.length - 1]
   const showThinkingState = Boolean(isLoading && lastMessage?.role === "user")
@@ -43,6 +48,7 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
             imageUrl={msg.imageUrl}
             imageUrls={msg.imageUrls}
             isNew={Boolean(msg.isNew)}
+            onImageLoad={onImageLoad}
           />
         ))}
 

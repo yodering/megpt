@@ -24,6 +24,7 @@ interface ChatMessageProps {
   isStreaming?: boolean
   isNew?: boolean
   streamingLabel?: string
+  onImageLoad?: () => void
 }
 
 export function ChatMessage({
@@ -35,6 +36,7 @@ export function ChatMessage({
   isStreaming,
   isNew = false,
   streamingLabel = "Thinking",
+  onImageLoad,
 }: ChatMessageProps) {
   const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null)
   const renderedImageUrls =
@@ -100,6 +102,8 @@ export function ChatMessage({
                         src={nextImageUrl}
                         alt={content || "Operator reply image"}
                         className="max-h-[22rem] w-full object-cover transition-transform duration-200 group-hover/image:scale-[1.01] sm:max-h-[28rem]"
+                        onLoad={onImageLoad}
+                        onError={onImageLoad}
                       />
                     </button>
                   ))}

@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
-import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { ChatHeader } from "@/components/chat-header"
 import { ChatInput, type ComposerPayload } from "@/components/chat-input"
@@ -144,7 +144,7 @@ export default function Home() {
     return conversationRequestIdRef.current
   }
 
-  function updateShouldAutoScroll() {
+  const updateShouldAutoScroll = useCallback(() => {
     const scrollContainer = messagesScrollRef.current
     if (!scrollContainer) return
 
@@ -154,7 +154,21 @@ export default function Home() {
       scrollContainer.clientHeight
 
     shouldAutoScrollRef.current = distanceFromBottom <= 120
-  }
+  }, [])
+
+  const scrollMessagesToBottom = useCallback(
+    (behavior: ScrollBehavior = "smooth") => {
+    const scrollContainer = messagesScrollRef.current
+    if (!scrollContainer) return
+
+    scrollContainer.scrollTo({
+      top: scrollContainer.scrollHeight,
+      behavior,
+    })
+    updateShouldAutoScroll()
+    },
+    [updateShouldAutoScroll]
+  )
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767px)")
@@ -245,7 +259,7 @@ export default function Home() {
 
     scrollContainer.addEventListener("scroll", handleScroll, { passive: true })
     return () => scrollContainer.removeEventListener("scroll", handleScroll)
-  }, [])
+  }, [updateShouldAutoScroll])
 
   useEffect(() => {
     const scrollContainer = messagesScrollRef.current
@@ -258,15 +272,11 @@ export default function Home() {
       previousConversationIdRef.current = conversationId
       if (!shouldScroll) return
 
-      scrollContainer.scrollTo({
-        top: scrollContainer.scrollHeight,
-        behavior: conversationChanged ? "auto" : "smooth",
-      })
-      updateShouldAutoScroll()
+      scrollMessagesToBottom(conversationChanged ? "auto" : "smooth")
     })
 
     return () => window.cancelAnimationFrame(frame)
-  }, [conversationId, isLoading, lastMessageKey, messages.length])
+  }, [conversationId, isLoading, lastMessageKey, messages.length, scrollMessagesToBottom])
 
   async function handleSend({ text, image }: ComposerPayload) {
     if (!identityReady) return false
@@ -563,7 +573,15 @@ export default function Home() {
               <HeroPrompt />
             </div>
           ) : (
-            <ChatMessages messages={messages} isLoading={isLoading} />
+            <ChatMessages
+              messages={messages}
+              isLoading={isLoading}
+              onImageLoad={() => {
+                if (shouldAutoScrollRef.current) {
+                  scrollMessagesToBottom("auto")
+                }
+              }}
+            />
           )}
         </div>
 
