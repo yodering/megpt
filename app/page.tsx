@@ -158,17 +158,31 @@ export default function Home() {
 
   const scrollMessagesToBottom = useCallback(
     (behavior: ScrollBehavior = "smooth") => {
-    const scrollContainer = messagesScrollRef.current
-    if (!scrollContainer) return
+      const scrollContainer = messagesScrollRef.current
+      if (!scrollContainer) return
 
-    // Programmatic scrolls should keep the view "pinned" until the user scrolls away.
-    shouldAutoScrollRef.current = true
-    scrollContainer.scrollTo({
-      top: scrollContainer.scrollHeight,
-      behavior,
-    })
+      // Programmatic scrolls should keep the view "pinned" until the user scrolls away.
+      shouldAutoScrollRef.current = true
+      scrollContainer.scrollTo({
+        top: scrollContainer.scrollHeight,
+        behavior,
+      })
     },
     []
+  )
+
+  const settleScrollToBottom = useCallback(
+    (behavior: ScrollBehavior = "smooth") => {
+      const frame = window.requestAnimationFrame(() => {
+        scrollMessagesToBottom(behavior)
+        window.requestAnimationFrame(() => {
+          scrollMessagesToBottom("auto")
+        })
+      })
+
+      return () => window.cancelAnimationFrame(frame)
+    },
+    [scrollMessagesToBottom]
   )
 
   useEffect(() => {
@@ -297,6 +311,7 @@ export default function Home() {
         imageUrl: tempImageUrl,
       },
     ])
+    settleScrollToBottom("smooth")
     setIsLoading(true)
     setComposerNotice(null)
 
@@ -579,14 +594,12 @@ export default function Home() {
               isLoading={isLoading}
               onContentResize={() => {
                 if (shouldAutoScrollRef.current) {
-                  window.requestAnimationFrame(() => {
-                    scrollMessagesToBottom("auto")
-                  })
+                  settleScrollToBottom("auto")
                 }
               }}
               onImageLoad={() => {
                 if (shouldAutoScrollRef.current) {
-                  scrollMessagesToBottom("auto")
+                  settleScrollToBottom("auto")
                 }
               }}
             />

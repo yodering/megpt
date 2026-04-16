@@ -59,6 +59,14 @@ export function ChatMessage({
     return () => document.removeEventListener("keydown", handleKeyDown)
   }, [expandedImageUrl])
 
+  const handleImageElement = (element: HTMLImageElement | null) => {
+    if (element?.complete) {
+      window.requestAnimationFrame(() => {
+        onImageLoad?.()
+      })
+    }
+  }
+
   return (
     <>
       <div
@@ -99,6 +107,7 @@ export function ChatMessage({
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
+                        ref={handleImageElement}
                         src={nextImageUrl}
                         alt={content || "Operator reply image"}
                         className="max-h-[22rem] w-full object-cover transition-transform duration-200 group-hover/image:scale-[1.01] sm:max-h-[28rem]"
