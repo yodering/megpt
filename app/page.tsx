@@ -161,13 +161,14 @@ export default function Home() {
     const scrollContainer = messagesScrollRef.current
     if (!scrollContainer) return
 
+    // Programmatic scrolls should keep the view "pinned" until the user scrolls away.
+    shouldAutoScrollRef.current = true
     scrollContainer.scrollTo({
       top: scrollContainer.scrollHeight,
       behavior,
     })
-    updateShouldAutoScroll()
     },
-    [updateShouldAutoScroll]
+    []
   )
 
   useEffect(() => {
