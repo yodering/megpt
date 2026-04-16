@@ -29,16 +29,17 @@ const THINKING_LABELS = [
 export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const renderedMessages = groupRenderableMessages(messages)
+  const lastMessage = renderedMessages[renderedMessages.length - 1]
+  const scrollSignature = `${renderedMessages.length}:${lastMessage?.key ?? ""}:${isLoading ? "loading" : "idle"}`
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [renderedMessages, isLoading])
+  }, [scrollSignature])
 
-  const lastMessage = renderedMessages[renderedMessages.length - 1]
   const showThinkingState = Boolean(isLoading && lastMessage?.role === "user")
 
   return (
-    <div className="flex-1 overflow-y-auto overscroll-contain">
+    <div className="min-h-full">
       <div className="mx-auto max-w-3xl px-3 py-3 sm:px-4 sm:py-4">
         {renderedMessages.map((msg, i) => (
           <ChatMessage

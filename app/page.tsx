@@ -74,6 +74,7 @@ export default function Home() {
   const [conversation, setConversation] = useState<Conversation | null>(null)
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [chatInputFocusToken, setChatInputFocusToken] = useState(0)
+  const [chatInputResetToken, setChatInputResetToken] = useState(0)
   const conversationRequestIdRef = useRef(0)
 
   const identityKey =
@@ -390,6 +391,7 @@ export default function Home() {
     }
     setConversation(data.conversation)
     setConversationId(data.conversation.id)
+    setChatInputResetToken((currentToken) => currentToken + 1)
     setConversations((prev) => {
       const existingConversation = prev.find(
         (item) => item.id === data.conversation.id
@@ -431,6 +433,7 @@ export default function Home() {
     setMessages([])
     setIsLoading(false)
     setChatInputFocusToken((currentToken) => currentToken + 1)
+    setChatInputResetToken((currentToken) => currentToken + 1)
     setMobileSidebarOpen(false)
   }
 
@@ -453,6 +456,7 @@ export default function Home() {
     setConversation(data.activeConversation)
     setMessages(data.messages.map((message: ConversationMessagePayload) => toUiMessage(message)))
     setIsLoading(false)
+    setChatInputResetToken((currentToken) => currentToken + 1)
     setMobileSidebarOpen(false)
   }
 
@@ -556,10 +560,12 @@ export default function Home() {
 
         <div className="safe-bottom shrink-0 bg-background/88 backdrop-blur-xl">
           <ChatInput
+            key={`${identityKey ?? "anonymous"}:${conversationId ?? "none"}:${chatInputResetToken}`}
             onSend={handleSend}
             disabled={inputDisabled}
             placeholder={hasPendingConversation ? "MeGPT is still working..." : "Ask anything"}
             maxLength={MESSAGE_MAX_CHARS}
+            resetToken={chatInputResetToken}
             helperText={
               hasPendingConversation
                 ? activeConversationStatus === "awaiting_admin" ||

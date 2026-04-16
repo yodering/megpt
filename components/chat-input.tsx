@@ -17,6 +17,7 @@ interface ChatInputProps {
   helperText?: string | null
   maxLength?: number
   focusToken?: number
+  resetToken?: number
 }
 
 export function ChatInput({
@@ -26,6 +27,7 @@ export function ChatInput({
   helperText = null,
   maxLength,
   focusToken,
+  resetToken,
 }: ChatInputProps) {
   const [value, setValue] = useState("")
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
@@ -64,6 +66,13 @@ export function ChatInput({
 
     return () => window.cancelAnimationFrame(frame)
   }, [focusToken, isComposerDisabled])
+
+  useEffect(() => {
+    if (typeof resetToken !== "number") return
+
+    setValue("")
+    clearSelectedImage()
+  }, [resetToken])
 
   function clearSelectedImage() {
     setSelectedImage(null)
@@ -183,7 +192,7 @@ export function ChatInput({
             disabled={isComposerDisabled}
             rows={1}
             className={cn(
-              "min-h-[40px] max-h-[160px] w-full resize-none bg-transparent py-2 text-[15px] text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
+              "min-h-[40px] max-h-[160px] w-full resize-none bg-transparent py-2 text-base text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50 sm:text-[15px]"
             )}
           />
           <Button

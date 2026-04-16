@@ -108,6 +108,23 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
     closeMenu()
   }
 
+  function blurActiveElement() {
+    const activeElement = document.activeElement
+    if (activeElement instanceof HTMLElement) {
+      activeElement.blur()
+    }
+  }
+
+  function startGoogleSignIn() {
+    blurActiveElement()
+    void signIn("google", { callbackUrl: "/" })
+  }
+
+  function startSignOut() {
+    blurActiveElement()
+    void signOut({ callbackUrl: "/" })
+  }
+
   useEffect(() => {
     if (!isMenuOpen) return
 
@@ -212,7 +229,7 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
                   label="Sign in with Google"
                   onClick={() => {
                     closeMenu()
-                    void signIn("google")
+                    startGoogleSignIn()
                   }}
                 />
               )}
@@ -252,7 +269,7 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
                   label="Log out"
                   onClick={() => {
                     closeMenu()
-                    void signOut()
+                    startSignOut()
                   }}
                 />
               ) : (
@@ -261,7 +278,7 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
                   label="Log in"
                   onClick={() => {
                     closeMenu()
-                    void signIn("google")
+                    startGoogleSignIn()
                   }}
                 />
               )}
@@ -621,7 +638,7 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
                               className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90"
                               onClick={() => {
                                 setIsSettingsOpen(false)
-                                void signOut()
+                                startSignOut()
                               }}
                             >
                               <LogOut className="h-4 w-4" />
@@ -633,7 +650,7 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
                               className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90"
                               onClick={() => {
                                 setIsSettingsOpen(false)
-                                void signIn("google")
+                                startGoogleSignIn()
                               }}
                             >
                               <LogIn className="h-4 w-4" />
