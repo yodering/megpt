@@ -5,76 +5,72 @@ export default function PrivacyPage() {
     <LegalDocument
       kind="privacy"
       title="Privacy Policy"
-      description="This policy explains what MeGPT collects, why it is processed, how long it may be retained, and how guest mode, sign-in, and human-operated replies affect your data."
-      lastUpdated="April 13, 2026"
+      summary="This page explains what MeGPT collects, why it collects it, who may see it, and how long it is usually kept. It is written to match what the project actually does today, without hiding the important parts behind heavy legal wording."
+      intro={[
+        "MeGPT is a school project and a human-assisted chat tool. If you send a message through the site, a human operator may be able to read and reply to it.",
+        "This Privacy Policy applies to the MeGPT website, guest sessions, Google sign-in flow, chat interface, uploads, and the operator tools used to receive and send messages.",
+        "The goal of this page is transparency. It describes the information the project handles and the practical reasons that information is used.",
+      ]}
+      dateLabel="Updated"
+      dateValue="April 16, 2026"
       sections={[
-        {
-          title: "Overview",
-          paragraphs: [
-            "MeGPT is a messaging product that supports both guest conversations and optional authenticated use. The service is designed around operator-assisted replies, which means information you send through the interface may be viewed and handled by a human operator in addition to any supporting software systems.",
-            "This Privacy Policy applies to information processed through the MeGPT web application, its authentication flow, its internal operator workflow, and supporting infrastructure used to deliver, store, and manage conversations.",
-          ],
-        },
         {
           title: "Information We Collect",
           paragraphs: [
-            "When you use guest mode, MeGPT may assign a temporary guest identifier so the app can keep the current session working and reconnect the browser to the correct conversation history during that session.",
-            "When you sign in, MeGPT may store basic account information needed to operate the service, such as your name, email address, and profile image if those details are provided by your identity provider.",
-            "When you send a message, MeGPT may store the message body, timestamps, conversation identifiers, and any associated metadata required to show the thread in the user interface and route it to the operator workflow.",
+            "The information MeGPT collects depends on how you use the site. If you use guest mode, the app stores a temporary guest identifier so it can keep your session connected to the right conversation.",
+            "If you sign in with Google, the project may receive basic account information such as your name, email address, profile image, and the identifiers needed to keep you signed in.",
+            "When you send a message, MeGPT may store the message itself, timestamps, conversation IDs, status information, and any images you upload so the chat can appear in the interface and be answered by the operator workflow.",
           ],
           bullets: [
-            "Conversation content that you submit through the chat interface.",
-            "Authentication details needed to recognize an account and maintain access.",
-            "Operational metadata such as timestamps, thread identifiers, and conversation status.",
-            "Images or other media sent through supported reply channels when those are attached to a conversation.",
+            "Guest-session identifiers stored in the browser for temporary chat access.",
+            "Account details returned by Google sign-in when you choose to log in.",
+            "Messages, attachments, timestamps, and conversation metadata.",
+            "Basic technical and request information needed to operate and secure the site.",
+            "Optional analytics data if the deployment enables Umami analytics in production.",
           ],
         },
         {
           title: "How We Use Information",
           paragraphs: [
-            "MeGPT uses collected information to run the product, associate requests with the correct user or guest session, route conversations to the operator workflow, display message history, and improve reliability and abuse prevention.",
-            "Information may also be used to diagnose service problems, enforce rate limits or queueing rules, and maintain the integrity of the operator dashboard and external messaging integrations used to deliver replies.",
+            "MeGPT uses information to run the site, connect messages to the correct user or guest session, show conversation history, route messages to the operator workflow, and deliver replies back to the chat interface.",
+            "Information may also be used to prevent abuse, enforce queue limits, troubleshoot bugs, maintain database records, and understand whether the site is working reliably.",
           ],
         },
         {
-          title: "Human Operator Access",
+          title: "Human Review and Service Providers",
           paragraphs: [
-            "MeGPT is intentionally structured so that a human operator may read, respond to, and manage conversations. You should not assume that messages are processed only by an automated model.",
-            "Because operator handling is part of the core product behavior, information visible in the conversation may also be visible in any connected operator tools used to manage response workflows.",
+            "A human operator may read, manage, and reply to messages sent through MeGPT. That is part of the core design of the project, not an exception.",
+            "Depending on how the project is deployed, information may also pass through third-party providers that help run the site, such as Google for sign-in, hosting and database providers, Discord for operator message handling, and optional analytics providers. Those providers may process information according to their own terms and privacy notices.",
           ],
         },
         {
-          title: "Third-Party Services",
+          title: "How Long We Keep Information",
           paragraphs: [
-            "Depending on deployment configuration, MeGPT may rely on external providers for authentication, hosting, logging, database storage, and operator messaging infrastructure. Those providers may process data on behalf of the service as needed to supply their functionality.",
-            "Examples may include identity providers, cloud hosting platforms, managed databases, and integrations used to deliver or synchronize operator replies. Their own privacy terms may apply to information processed through their systems.",
-          ],
-        },
-        {
-          title: "Retention",
-          paragraphs: [
-            "Guest conversations are intended to be temporary and may be automatically deleted after a short retention period or after inactivity. Logged-in account conversations may be retained longer so they can appear in the interface and operator workflow.",
-            "Operational logs, queue records, and related metadata may persist for a different period than visible conversation content when needed for reliability, troubleshooting, abuse prevention, or legal compliance.",
-          ],
-        },
-        {
-          title: "Security and Limitations",
-          paragraphs: [
-            "MeGPT uses reasonable technical and organizational measures to protect stored data, but no internet-connected service can guarantee complete security. You should avoid submitting sensitive personal, financial, medical, or confidential business information unless you are comfortable with the risks of digital transmission and human review.",
-            "Access controls, authentication, and infrastructure protections are intended to reduce risk, but they do not eliminate it entirely.",
+            "Guest conversations are meant to be temporary. In this project, guest chats are normally deleted after about 30 minutes of inactivity unless the deployment uses a different retention setting.",
+            "Signed-in account conversations may be kept longer so they remain visible in the interface and operator workflow. Some logs, queue records, and related metadata may remain longer when needed for reliability, troubleshooting, abuse prevention, or legal compliance.",
+            "If guest messages include uploaded images, those images are deleted when the related guest conversation is cleaned up.",
           ],
         },
         {
           title: "Your Choices",
           paragraphs: [
-            "You may choose whether to use guest mode or an authenticated account. You can also stop using the service at any time. If you want information deleted or need help with account-related privacy questions, use the support contact associated with the deployment or the contact details shown in the Google consent configuration.",
-            "Requests may be limited by technical feasibility, legal requirements, security considerations, or the need to preserve operational records necessary to protect the service and its users.",
+            "You can choose whether to use MeGPT in guest mode or with Google sign-in. You can also stop using the site at any time.",
+            "When the interface allows it, you can delete conversations yourself. If you need additional help with deletion or privacy questions, use the project contact method listed on the site or the developer contact shown in the Google consent flow for this project.",
+            "Because this project includes human review and ordinary cloud tooling, avoid sending highly sensitive personal, financial, medical, or confidential business information unless you are comfortable with that risk.",
           ],
         },
         {
-          title: "Policy Changes",
+          title: "Security and Limits",
           paragraphs: [
-            "This Privacy Policy may be updated as MeGPT changes. When practical, the service will reflect a revised effective date on this page. Continued use after an update means the revised policy governs future use of the service.",
+            "MeGPT uses reasonable steps to protect stored information, but no website or online service can promise perfect security.",
+            "Using the site means accepting the usual risks of internet communication, cloud storage, and human handling of messages.",
+          ],
+        },
+        {
+          title: "Changes to This Policy",
+          paragraphs: [
+            "This policy may change if the project changes. When it does, the date at the top of this page will be updated.",
+            "If you continue using MeGPT after a change takes effect, the updated policy will apply going forward.",
           ],
         },
       ]}

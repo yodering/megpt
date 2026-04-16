@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowLeft, FileText, Shield } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 
 type LegalSection = {
   title: string
@@ -10,8 +10,11 @@ type LegalSection = {
 interface LegalDocumentProps {
   kind: "privacy" | "terms"
   title: string
-  description: string
-  lastUpdated: string
+  summary: string
+  intro: string[]
+  dateLabel: string
+  dateValue: string
+  effectiveDate?: string
   sections: LegalSection[]
 }
 
@@ -25,137 +28,114 @@ function slugify(value: string) {
 export function LegalDocument({
   kind,
   title,
-  description,
-  lastUpdated,
+  summary,
+  intro,
+  dateLabel,
+  dateValue,
+  effectiveDate,
   sections,
 }: LegalDocumentProps) {
   const isPrivacy = kind === "privacy"
+  const currentTabLabel = isPrivacy ? "Privacy" : "Terms"
+  const otherTabLabel = isPrivacy ? "Terms" : "Privacy"
+  const otherTabHref = isPrivacy ? "/terms" : "/privacy"
 
   return (
-    <main className="h-screen overflow-y-auto bg-background text-foreground">
-      <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
+    <main className="min-h-dvh overflow-y-auto bg-background text-foreground">
+      <header className="border-b border-border/80 bg-background">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-5">
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="inline-flex h-10 items-center gap-2 text-sm text-foreground hover:text-muted-foreground"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to chat
             </Link>
-            <div className="hidden h-5 w-px bg-border sm:block" />
-            <div className="hidden items-center gap-2 text-sm text-muted-foreground sm:inline-flex">
-              {isPrivacy ? <Shield className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
-              MeGPT legal
-            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <nav
+            aria-label="Legal pages"
+            className="inline-flex w-full items-center gap-1 rounded-full border border-border/80 bg-card/35 p-1 sm:w-fit"
+          >
+            <span className="flex-1 rounded-full px-4 py-2 text-center text-sm font-medium text-foreground sm:flex-none">
+              {currentTabLabel}
+            </span>
             <Link
-              href="/privacy"
-              className={`inline-flex h-10 items-center border-b text-sm ${
-                isPrivacy
-                  ? "border-foreground text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
+              href={otherTabHref}
+              className="flex-1 rounded-full px-4 py-2 text-center text-sm text-muted-foreground transition-colors hover:bg-background hover:text-foreground sm:flex-none"
             >
-              Privacy
+              {otherTabLabel}
             </Link>
-            <Link
-              href="/terms"
-              className={`inline-flex h-10 items-center border-b text-sm ${
-                !isPrivacy
-                  ? "border-foreground text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Terms
-            </Link>
-          </div>
+          </nav>
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-6xl gap-12 px-6 py-10 lg:grid-cols-[minmax(0,1fr)_240px]">
-        <article className="min-w-0">
-          <div className="max-w-3xl">
-            <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
-              {isPrivacy ? "Privacy" : "Terms"} • Last updated {lastUpdated}
-            </p>
-            <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
-              {title}
-            </h1>
-            <p className="mt-5 max-w-3xl text-base leading-8 text-muted-foreground">
-              {description}
-            </p>
+      <article className="mx-auto max-w-[46rem] px-4 pb-20 pt-12 sm:px-8 sm:pb-24 sm:pt-24">
+        <p className="text-center text-sm text-muted-foreground">
+          {dateLabel}: {dateValue}
+        </p>
+        <h1 className="mt-6 text-center text-[2.8rem] font-medium tracking-tight text-balance sm:mt-8 sm:text-7xl">
+          {title}
+        </h1>
+        {effectiveDate ? (
+          <p className="mt-8 text-center text-base text-foreground sm:mt-10 sm:text-lg">
+            Effective: {effectiveDate}
+          </p>
+        ) : null}
 
-            <div className="mt-12 border-t border-border" />
+        <div className="mt-12 rounded-[1.5rem] border border-border/70 bg-card/30 px-5 py-5 sm:mt-16 sm:rounded-[2rem] sm:px-8 sm:py-6">
+          <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            Plain-language summary
+          </p>
+          <p className="mt-3 text-[0.98rem] leading-7 text-foreground sm:mt-4 sm:text-lg sm:leading-8">
+            {summary}
+          </p>
+        </div>
 
-            <div className="space-y-0">
-              {sections.map((section) => {
-                const sectionId = slugify(section.title)
+        <div className="mt-10 space-y-6 text-base leading-8 text-foreground/92 sm:mt-14 sm:space-y-8 sm:text-lg sm:leading-9">
+          {intro.map((paragraph, index) => (
+            <p key={`${kind}-intro-${index}`}>{paragraph}</p>
+          ))}
+        </div>
 
-                return (
-                  <section
-                    key={sectionId}
-                    id={sectionId}
-                    className="scroll-mt-28 border-b border-border py-10 last:border-b-0"
-                  >
-                    <h2 className="text-2xl font-semibold tracking-tight sm:text-[28px]">
-                      {section.title}
-                    </h2>
-                    <div className="mt-5 space-y-4 text-sm leading-7 text-muted-foreground sm:text-[15px]">
-                      {section.paragraphs.map((paragraph) => (
-                        <p key={paragraph}>{paragraph}</p>
-                      ))}
-                    </div>
-                    {section.bullets?.length ? (
-                      <ul className="mt-5 space-y-3 text-sm leading-7 text-muted-foreground sm:text-[15px]">
-                        {section.bullets.map((bullet) => (
-                          <li key={bullet} className="flex gap-3">
-                            <span className="mt-3 h-px w-4 shrink-0 bg-foreground/45" />
-                            <span>{bullet}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </section>
-                )
-              })}
-            </div>
-          </div>
-        </article>
+        <div className="mt-12 space-y-12 sm:mt-16 sm:space-y-16">
+          {sections.map((section) => {
+            const sectionId = slugify(section.title)
 
-        <aside className="lg:sticky lg:top-[92px] lg:h-fit">
-          <div className="border-l border-border pl-5">
-            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              On this page
-            </p>
-            <nav className="mt-4 space-y-1">
-              {sections.map((section) => {
-                const sectionId = slugify(section.title)
+            return (
+              <section key={sectionId} id={sectionId} className="scroll-mt-20">
+                <h2 className="text-[2rem] font-medium tracking-tight text-balance sm:text-[2.5rem]">
+                  {section.title}
+                </h2>
+                <div className="mt-5 space-y-5 text-[1rem] leading-8 text-foreground/84 sm:mt-6 sm:space-y-6 sm:text-[1.125rem] sm:leading-9">
+                  {section.paragraphs.map((paragraph, index) => (
+                    <p key={`${sectionId}-paragraph-${index}`}>{paragraph}</p>
+                  ))}
+                </div>
+                {section.bullets?.length ? (
+                  <ul className="mt-5 space-y-3 text-[1rem] leading-8 text-foreground/84 sm:mt-6 sm:space-y-4 sm:text-[1.125rem] sm:leading-9">
+                    {section.bullets.map((bullet, index) => (
+                      <li key={`${sectionId}-bullet-${index}`} className="flex gap-3 sm:gap-4">
+                        <span className="mt-3.5 h-2 w-2 shrink-0 rounded-full bg-foreground/75 sm:mt-4" />
+                        <span>{bullet}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </section>
+            )
+          })}
+        </div>
 
-                return (
-                  <a
-                    key={sectionId}
-                    href={`#${sectionId}`}
-                    className="block py-1.5 text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    {section.title}
-                  </a>
-                )
-              })}
-            </nav>
-
-            <div className="mt-8 text-sm leading-6 text-muted-foreground">
-              <p className="font-medium text-foreground">Human-operated replies</p>
-              <p className="mt-2">
-                MeGPT is designed around operator-assisted messaging. Treat it as a
-                managed communication tool, not an unsupervised autonomous system.
-              </p>
-            </div>
-          </div>
-        </aside>
-      </div>
+        <div className="mt-12 border-t border-border/80 pt-6 sm:mt-16 sm:pt-8">
+          <p className="text-sm leading-7 text-muted-foreground">
+            MeGPT is a school project. These pages are meant to clearly describe how the site
+            works, but they are not a substitute for attorney review if the project later
+            becomes a commercial product or handles sensitive regulated data.
+          </p>
+        </div>
+      </article>
     </main>
   )
 }

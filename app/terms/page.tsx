@@ -4,81 +4,86 @@ export default function TermsPage() {
   return (
     <LegalDocument
       kind="terms"
-      title="Terms of Service"
-      description="These terms govern your access to MeGPT, including guest mode, authenticated accounts, operator-assisted replies, and the service rules that keep the product usable and safe."
-      lastUpdated="April 13, 2026"
+      title="Terms of Use"
+      summary="MeGPT is a student-built chat site with guest access, optional Google sign-in, and human-reviewed replies. These terms explain, in plain English, what the project is, what you can expect from it, and the basic rules for using it."
+      intro={[
+        "Thank you for using MeGPT.",
+        "These Terms of Use apply to the MeGPT website, chat interface, guest mode, sign-in flow, and any related project pages or features. By using the site, you agree to these terms.",
+        "MeGPT is a school project, not an official OpenAI or ChatGPT product, and not a guaranteed production service. A human operator may read, route, and respond to messages sent through the site.",
+        "Please also read the Privacy Policy. It explains what information the project collects and how that information is handled.",
+      ]}
+      dateLabel="Published"
+      dateValue="April 16, 2026"
+      effectiveDate="April 16, 2026"
       sections={[
         {
-          title: "Using MeGPT",
+          title: "Who Can Use MeGPT",
           paragraphs: [
-            "By accessing or using MeGPT, you agree to these Terms of Service. If you do not agree, do not use the service.",
-            "MeGPT may offer both guest access and authenticated access. Some features, history retention, and operator workflows may behave differently depending on whether you are using a guest session or a signed-in account.",
+            "You must be at least 13 years old, or the minimum age required in your location to use an online service like this on your own. If you are under 18, use MeGPT only with permission from a parent or legal guardian.",
+            "You may use MeGPT in guest mode or through a signed-in account when that option is available. Some features, saved history, or reply workflows may work differently depending on which mode you use.",
           ],
         },
         {
-          title: "Service Model",
+          title: "How MeGPT Works",
           paragraphs: [
-            "MeGPT is a communication tool built around operator-assisted messaging. Replies may be prepared, reviewed, or sent by a human operator. You should not assume the service is a fully autonomous chatbot or a source of professional advice.",
-            "The product may use connected infrastructure and workflow tools to route messages, queue replies, and keep conversation state synchronized across interfaces.",
+            "MeGPT is a communication tool built around operator-assisted messaging. That means replies may be written, reviewed, or sent by a human, and you should not assume the site is a fully autonomous chatbot.",
+            "The project may use connected tools and infrastructure to queue messages, store conversation history, manage attachments, and route replies back to the site.",
           ],
         },
         {
-          title: "Accounts and Guest Sessions",
+          title: "Accounts and Guest Mode",
           paragraphs: [
-            "You are responsible for using any account connected to MeGPT lawfully and for maintaining the security of credentials you choose to use with the service. If you access the product through guest mode, you understand that guest history may be temporary and may expire automatically.",
-            "You may not impersonate another person, misrepresent your identity, or attempt to gain access to conversations or systems that are not intended for you.",
+            "If you sign in, provide accurate account information and keep your login credentials secure. You are responsible for activity that happens through your account.",
+            "If you use guest mode, you understand that guest chats are temporary and may disappear automatically after a short period of inactivity.",
+            "Do not impersonate another person, misrepresent your identity, or try to access conversations, files, or systems that are not meant for you.",
           ],
         },
         {
           title: "Acceptable Use",
           paragraphs: [
-            "You may use MeGPT only in ways that comply with applicable law and do not interfere with the operation, security, or availability of the service.",
+            "Use MeGPT lawfully and in a way that does not interfere with the operation, security, or availability of the site.",
           ],
           bullets: [
-            "Do not attempt unauthorized access, scraping, reverse engineering, or interference with the app, its APIs, or connected operator systems.",
-            "Do not send unlawful, abusive, harassing, fraudulent, or harmful content.",
-            "Do not use the service to distribute malware, phishing content, spam, or deceptive material.",
-            "Do not use the product in ways that could overload shared infrastructure or bypass queueing, moderation, or rate-limit controls.",
+            "Do not attempt unauthorized access, scraping, reverse engineering, or technical interference with the app or its connected systems.",
+            "Do not send unlawful, abusive, harassing, hateful, fraudulent, or harmful content.",
+            "Do not use the site for malware, phishing, spam, scams, or deceptive activity.",
+            "Do not try to bypass queue limits, moderation choices, or rate limits.",
           ],
         },
         {
           title: "User Content",
           paragraphs: [
-            "You retain responsibility for the messages and materials you submit. You represent that you have the rights needed to provide that content and that your content does not violate law or the rights of others.",
-            "You grant MeGPT the limited rights necessary to host, store, display, transmit, and process your content for the purpose of operating the service and supporting the operator workflow.",
+            "You are responsible for the messages, images, and other material you submit. You must have the rights needed to send that content, and it must not violate the law or anyone else’s rights.",
+            "You keep ownership of your content. By submitting it to MeGPT, you give the project a limited right to host, store, display, transmit, review, and process that content so the site can function and a human operator can respond.",
           ],
         },
         {
-          title: "Availability and Changes",
+          title: "Project Availability",
           paragraphs: [
-            "MeGPT is provided on an as-is and as-available basis. Features, integrations, and access controls may change without notice. The service may be suspended, rate-limited, or modified at any time for maintenance, security, abuse prevention, or operational reasons.",
-            "The operator may set queue limits, conversation limits, or other usage thresholds to keep the service functioning reliably.",
+            "MeGPT is a school project and is offered on an as-is and as-available basis. Features may change, break, pause, or disappear without notice.",
+            "The operator may set queue limits, conversation limits, file limits, or other usage controls to keep the project usable and safe.",
           ],
         },
         {
-          title: "No Professional Advice",
+          title: "Important Disclaimers",
           paragraphs: [
-            "Unless MeGPT explicitly states otherwise in a separate written agreement, the service does not provide legal, medical, financial, compliance, or other regulated professional advice. You remain responsible for evaluating outputs and verifying important decisions independently.",
+            "MeGPT does not provide legal, medical, financial, academic, mental health, compliance, or other professional advice. You are responsible for checking anything important before acting on it.",
+            "Responses may be delayed, incomplete, mistaken, biased, or written in a way that does not fit your situation. Use your own judgment and human review.",
+            "To the extent allowed by law, MeGPT is provided without warranties, and the project owner is not responsible for indirect, incidental, or consequential losses that result from your use of the site.",
           ],
         },
         {
           title: "Suspension and Termination",
           paragraphs: [
-            "MeGPT may suspend or terminate access, remove content, or disable conversations when reasonably necessary to address abuse, security concerns, legal obligations, operational issues, or violations of these terms.",
-            "You may stop using the service at any time. Termination or suspension does not necessarily require advance notice.",
+            "You may stop using MeGPT at any time.",
+            "The project may suspend access, delete content, or end conversations when reasonably needed to address abuse, security concerns, legal obligations, project shutdown, or violations of these terms.",
           ],
         },
         {
-          title: "Disclaimers and Liability",
+          title: "Changes to These Terms",
           paragraphs: [
-            "To the fullest extent permitted by law, MeGPT disclaims warranties of merchantability, fitness for a particular purpose, non-infringement, and uninterrupted availability. The service may contain bugs, delays, or inaccurate outputs.",
-            "To the fullest extent permitted by law, MeGPT and its operators will not be liable for indirect, incidental, special, consequential, or punitive damages, or for loss of data, profits, goodwill, or business opportunity arising from your use of the service.",
-          ],
-        },
-        {
-          title: "Updates to These Terms",
-          paragraphs: [
-            "These Terms of Service may be updated from time to time. When practical, the page will show a revised last-updated date. Continued use of MeGPT after changes take effect means you accept the revised terms.",
+            "These terms may change as the project changes. When that happens, the date on this page will be updated.",
+            "If you continue using MeGPT after a change takes effect, that continued use means you accept the revised terms.",
           ],
         },
       ]}
