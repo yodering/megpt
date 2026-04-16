@@ -8,7 +8,12 @@ import {
   type TextChannel,
   type ThreadChannel,
 } from "discord.js"
-import { createMessage, getConversationById, type ConversationMessage } from "@/lib/conversations"
+import {
+  WAITING_ON_USER_STATUS,
+  createMessage,
+  getConversationById,
+  type ConversationMessage,
+} from "@/lib/conversations"
 import {
   getDiscordThreadByConversationId,
   getDiscordThreadByThreadId,
@@ -283,9 +288,25 @@ async function findOrCreateThread(
 
 async function syncThreadPresentation(
   thread: ThreadChannel,
-  _conversation: ConversationIdentity,
+  conversation: ConversationIdentity & { status?: string },
   options?: { unarchiveReason?: string }
 ) {
+  if (conversation.status === WAITING_ON_USER_STATUS) {
+    if (!thread.archived) {
+      await thread.setArchived(true, "Waiting for the user to reply")
+    }
+
+    if (!thread.locked) {
+      await thread.setLocked(true, "Waiting for the user to reply")
+    }
+
+    return
+  }
+
+  if (thread.locked) {
+    await thread.setLocked(false, options?.unarchiveReason ?? "Conversation reopened")
+  }
+
   if (thread.archived) {
     await thread.setArchived(false, options?.unarchiveReason ?? "Conversation reopened")
   }
@@ -323,6 +344,7 @@ async function bindDiscordHandlers(client: Client) {
 
     const conversation = await getConversationById(mapping.conversationId)
     if (!conversation) return
+    if (conversation.status === WAITING_ON_USER_STATUS) return
 
     const savedMessages: ConversationMessage[] = []
 

@@ -9,6 +9,7 @@ interface Message {
   content: string
   contentType?: "text" | "image"
   imageUrl?: string | null
+  imageUrls?: string[]
   isNew?: boolean
 }
 
@@ -27,24 +28,26 @@ const THINKING_LABELS = [
 
 export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
+  const renderedMessages = groupRenderableMessages(messages)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, isLoading])
+  }, [renderedMessages, isLoading])
 
-  const lastMessage = messages[messages.length - 1]
+  const lastMessage = renderedMessages[renderedMessages.length - 1]
   const showThinkingState = Boolean(isLoading && lastMessage?.role === "user")
 
   return (
     <div className="flex-1 overflow-y-auto overscroll-contain">
       <div className="mx-auto max-w-3xl px-3 py-3 sm:px-4 sm:py-4">
-        {messages.map((msg, i) => (
+        {renderedMessages.map((msg, i) => (
           <ChatMessage
             key={msg.key ?? i}
             role={msg.role === "user" ? "user" : "assistant"}
             content={msg.content}
             contentType={msg.contentType}
             imageUrl={msg.imageUrl}
+            imageUrls={msg.imageUrls}
             isNew={Boolean(msg.isNew)}
           />
         ))}
@@ -57,6 +60,45 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
       </div>
     </div>
   )
+}
+
+function groupRenderableMessages(messages: Message[]) {
+  const grouped: Message[] = []
+
+  for (const message of messages) {
+    const previousMessage = grouped[grouped.length - 1]
+    const isImageOnlyAssistantMessage =
+      message.role !== "user" &&
+      message.contentType === "image" &&
+      !message.content &&
+      Boolean(message.imageUrl)
+    const shouldAppendToPrevious =
+      isImageOnlyAssistantMessage &&
+      previousMessage?.role === message.role &&
+      previousMessage.contentType === "image" &&
+      !previousMessage.content
+
+    if (shouldAppendToPrevious) {
+      previousMessage.imageUrls = [
+        ...(previousMessage.imageUrls?.length
+          ? previousMessage.imageUrls
+          : previousMessage.imageUrl
+            ? [previousMessage.imageUrl]
+            : []),
+        ...(message.imageUrl ? [message.imageUrl] : []),
+      ]
+      previousMessage.key = `${previousMessage.key}:${message.key}`
+      previousMessage.isNew = previousMessage.isNew || message.isNew
+      continue
+    }
+
+    grouped.push({
+      ...message,
+      imageUrls: message.imageUrl ? [message.imageUrl] : undefined,
+    })
+  }
+
+  return grouped
 }
 
 function ThinkingIndicator() {

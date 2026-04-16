@@ -11,6 +11,7 @@ interface ChatMessageProps {
   content: string
   contentType?: "text" | "image"
   imageUrl?: string | null
+  imageUrls?: string[]
   isStreaming?: boolean
   isNew?: boolean
   streamingLabel?: string
@@ -21,10 +22,18 @@ export function ChatMessage({
   content,
   contentType = "text",
   imageUrl,
+  imageUrls = [],
   isStreaming,
   isNew = false,
   streamingLabel = "Thinking",
 }: ChatMessageProps) {
+  const renderedImageUrls =
+    imageUrls.length > 0
+      ? imageUrls.filter(Boolean)
+      : imageUrl
+        ? [imageUrl]
+        : []
+
   return (
     <div
       className={cn(
@@ -46,14 +55,24 @@ export function ChatMessage({
               : "bg-transparent text-foreground"
           )}
         >
-          {contentType === "image" && imageUrl ? (
+          {contentType === "image" && renderedImageUrls.length > 0 ? (
             <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={imageUrl}
-                alt={content || "Operator reply image"}
-                className="mb-3 max-h-[22rem] w-full rounded-2xl border border-border object-cover sm:max-h-[28rem]"
-              />
+              <div
+                className={cn(
+                  "mb-3 grid gap-3",
+                  renderedImageUrls.length > 1 ? "grid-cols-2" : "grid-cols-1"
+                )}
+              >
+                {renderedImageUrls.map((nextImageUrl, index) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={`${nextImageUrl}:${index}`}
+                    src={nextImageUrl}
+                    alt={content || "Operator reply image"}
+                    className="max-h-[22rem] w-full rounded-2xl border border-border object-cover sm:max-h-[28rem]"
+                  />
+                ))}
+              </div>
               {content ? (
                 <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
                   {content}
