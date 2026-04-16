@@ -157,7 +157,7 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
         <Button
           variant="ghost"
           onClick={() => (isMenuOpen ? closeMenu() : openMenu())}
-          className="h-auto w-full justify-between rounded-2xl border border-sidebar-border/80 bg-sidebar-accent/60 px-3 py-2.5 text-sidebar-foreground hover:bg-sidebar-accent"
+          className="h-auto w-full justify-between rounded-lg border-0 bg-transparent px-3 py-2.5 text-sidebar-foreground shadow-none hover:bg-sidebar-accent"
         >
           <span className="flex min-w-0 items-center gap-3">
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#bc9650] text-sm font-medium text-white">
