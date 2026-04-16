@@ -76,6 +76,9 @@ export default function Home() {
   const [chatInputFocusToken, setChatInputFocusToken] = useState(0)
   const [chatInputResetToken, setChatInputResetToken] = useState(0)
   const conversationRequestIdRef = useRef(0)
+  const messagesScrollRef = useRef<HTMLDivElement>(null)
+  const shouldAutoScrollRef = useRef(true)
+  const previousConversationIdRef = useRef<number | null>(null)
 
   const identityKey =
     session?.user?.email ??
@@ -104,6 +107,7 @@ export default function Home() {
     date: getConversationDateLabel(item.lastMessageAt),
     pinned: item.isPinned,
   }))
+  const lastMessageKey = messages[messages.length - 1]?.key ?? null
 
   function toUiMessage(message: ConversationMessagePayload, isNew = false): Message {
     return {
@@ -138,6 +142,18 @@ export default function Home() {
   function beginConversationRequest() {
     conversationRequestIdRef.current += 1
     return conversationRequestIdRef.current
+  }
+
+  function updateShouldAutoScroll() {
+    const scrollContainer = messagesScrollRef.current
+    if (!scrollContainer) return
+
+    const distanceFromBottom =
+      scrollContainer.scrollHeight -
+      scrollContainer.scrollTop -
+      scrollContainer.clientHeight
+
+    shouldAutoScrollRef.current = distanceFromBottom <= 120
   }
 
   useEffect(() => {
@@ -219,6 +235,38 @@ export default function Home() {
     guestHeaders,
     identityReady,
   ])
+
+  useEffect(() => {
+    const scrollContainer = messagesScrollRef.current
+    if (!scrollContainer) return
+
+    const handleScroll = () => updateShouldAutoScroll()
+    handleScroll()
+
+    scrollContainer.addEventListener("scroll", handleScroll, { passive: true })
+    return () => scrollContainer.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  useEffect(() => {
+    const scrollContainer = messagesScrollRef.current
+    if (!scrollContainer) return
+
+    const conversationChanged = previousConversationIdRef.current !== conversationId
+    const shouldScroll = conversationChanged || shouldAutoScrollRef.current
+
+    const frame = window.requestAnimationFrame(() => {
+      previousConversationIdRef.current = conversationId
+      if (!shouldScroll) return
+
+      scrollContainer.scrollTo({
+        top: scrollContainer.scrollHeight,
+        behavior: conversationChanged ? "auto" : "smooth",
+      })
+      updateShouldAutoScroll()
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [conversationId, isLoading, lastMessageKey, messages.length])
 
   async function handleSend({ text, image }: ComposerPayload) {
     if (!identityReady) return false
@@ -506,7 +554,10 @@ export default function Home() {
           hasMessages={messages.length > 0}
         />
 
-        <div className="momentum-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div
+          ref={messagesScrollRef}
+          className="momentum-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain"
+        >
           {messages.length === 0 ? (
             <div className="flex h-full items-center justify-center px-4">
               <HeroPrompt />

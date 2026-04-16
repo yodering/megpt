@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { ChatMessage } from "@/components/chat-message"
 
 interface Message {
@@ -27,15 +27,8 @@ const THINKING_LABELS = [
 ]
 
 export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
-  const bottomRef = useRef<HTMLDivElement>(null)
   const renderedMessages = groupRenderableMessages(messages)
   const lastMessage = renderedMessages[renderedMessages.length - 1]
-  const scrollSignature = `${renderedMessages.length}:${lastMessage?.key ?? ""}:${isLoading ? "loading" : "idle"}`
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [scrollSignature])
-
   const showThinkingState = Boolean(isLoading && lastMessage?.role === "user")
 
   return (
@@ -56,8 +49,6 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
         {showThinkingState ? (
           <ThinkingIndicator />
         ) : null}
-
-        <div ref={bottomRef} />
       </div>
     </div>
   )
