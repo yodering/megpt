@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { Providers } from "@/components/providers"
-import { UmamiAnalytics } from "@/components/umami-analytics"
 import "./globals.css"
 
 const geistSans = Geist({
@@ -61,6 +60,11 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 }
 
+const umamiScriptUrl = process.env.NEXT_PUBLIC_UMAMI_SCRIPT_URL
+const umamiWebsiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID
+const umamiDomains = process.env.NEXT_PUBLIC_UMAMI_DOMAINS
+const umamiHostUrl = process.env.NEXT_PUBLIC_UMAMI_HOST_URL
+
 export default function RootLayout({
   children,
 }: {
@@ -72,10 +76,22 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} dark`}
     >
+      <head>
+        {process.env.NODE_ENV === "production" && umamiScriptUrl && umamiWebsiteId ? (
+          <script
+            defer
+            src={umamiScriptUrl}
+            data-website-id={umamiWebsiteId}
+            data-domains={umamiDomains}
+            data-host-url={umamiHostUrl}
+            data-do-not-track="true"
+            data-exclude-search="true"
+          />
+        ) : null}
+      </head>
       <body suppressHydrationWarning className="min-h-dvh font-sans antialiased">
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <Providers>{children}</Providers>
-        <UmamiAnalytics />
       </body>
     </html>
   )
