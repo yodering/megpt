@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { sendToClient } from "@/lib/sse-broker"
-import type { ConversationMessage } from "@/lib/conversations"
+import {
+  WAITING_ON_USER_STATUS,
+  createMessage,
+  getConversationById,
+} from "@/lib/conversations"
 
 const TELEGRAM_API = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`
 
@@ -25,15 +28,16 @@ export async function POST(req: NextRequest) {
     const match = text.match(/^(.+?):\s([\s\S]+)$/)
     if (match) {
       const [, conversationId, message] = match
-      sendToClient(conversationId.trim(), {
-        id: 0,
-        conversationId: Number(conversationId.trim()) || 0,
-        senderType: "operator",
-        body: message.trim(),
-        contentType: "text",
-        imageUrl: null,
-        createdAt: new Date().toISOString(),
-      } satisfies ConversationMessage)
+      const parsedConversationId = Number(conversationId.trim())
+      const trimmedMessage = message.trim()
+
+      if (Number.isFinite(parsedConversationId) && trimmedMessage) {
+        const conversation = await getConversationById(parsedConversationId)
+
+        if (conversation && conversation.status !== WAITING_ON_USER_STATUS) {
+          await createMessage(parsedConversationId, "operator", trimmedMessage)
+        }
+      }
     }
     return NextResponse.json({ ok: true })
   }

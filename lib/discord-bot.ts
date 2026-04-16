@@ -24,7 +24,6 @@ import {
   resolveSupportedImageMimeType,
   saveRemoteImage,
 } from "@/lib/image-uploads"
-import { sendToClient } from "@/lib/sse-broker"
 
 declare global {
   var discordClient: Client | undefined
@@ -346,10 +345,8 @@ async function bindDiscordHandlers(client: Client) {
     if (!conversation) return
     if (conversation.status === WAITING_ON_USER_STATUS) return
 
-    const savedMessages: ConversationMessage[] = []
-
     if (content) {
-      savedMessages.push(await createMessage(conversation.id, "operator", content))
+      await createMessage(conversation.id, "operator", content)
     }
 
     for (const attachment of imageAttachments) {
@@ -366,20 +363,14 @@ async function bindDiscordHandlers(client: Client) {
         console.error("Failed to store Discord image attachment locally", error)
       }
 
-      savedMessages.push(
-        await createMessage(conversation.id, "operator", "", {
-          contentType: "image",
-          imageUrl,
-        })
-      )
+      await createMessage(conversation.id, "operator", "", {
+        contentType: "image",
+        imageUrl,
+      })
     }
 
     const updatedConversation = await getConversationById(conversation.id)
     await syncThreadPresentation(message.channel, updatedConversation ?? conversation)
-
-    for (const savedMessage of savedMessages) {
-      sendToClient(String(conversation.id), savedMessage)
-    }
 
     await promoteQueuedConversationAfterCapacityChange()
   })

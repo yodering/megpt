@@ -182,48 +182,6 @@ export default function Home() {
 
   useEffect(() => {
     if (!identityReady || !conversationId) return
-
-    const es = new EventSource(`/api/sse?conversationId=${conversationId}`)
-    es.onmessage = (e) => {
-      const data = JSON.parse(e.data)
-      const nextMessage = toUiMessage(data.message, true)
-      setMessages((prev) =>
-        prev.some((message) => message.key === nextMessage.key)
-          ? prev
-          : [...prev, nextMessage]
-      )
-      setConversation((prev) =>
-        prev
-          ? {
-              ...prev,
-              status: "awaiting_user",
-            }
-          : prev
-      )
-      setConversations((prev) =>
-        prev.map((item) =>
-          item.id === conversationId
-            ? {
-                ...item,
-                status: "awaiting_user",
-                lastMessageAt: data.message.createdAt ?? new Date().toISOString(),
-                lastMessageBody:
-                  data.message.body ||
-                  (data.message.contentType === "image" ? "[Image]" : null),
-                messageCount: item.messageCount + 1,
-              }
-            : item
-        )
-      )
-      setComposerNotice(null)
-      setIsLoading(false)
-    }
-
-    return () => es.close()
-  }, [conversationId, identityReady])
-
-  useEffect(() => {
-    if (!identityReady || !conversationId) return
     if (
       activeConversationStatus !== "awaiting_admin" &&
       activeConversationStatus !== "queued"
@@ -525,7 +483,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex min-h-dvh bg-background">
+    <div className="flex h-full min-h-0 bg-background">
       <Sidebar
         collapsed={sidebarCollapsed}
         mobileOpen={mobileSidebarOpen}
@@ -539,7 +497,7 @@ export default function Home() {
         onTogglePinConversation={handleTogglePinConversation}
       />
 
-      <main className="safe-top flex min-h-dvh flex-1 flex-col overflow-hidden">
+      <main className="safe-top flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <ChatHeader
           sidebarCollapsed={sidebarCollapsed}
           isMobileViewport={isMobileViewport}

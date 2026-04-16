@@ -85,7 +85,7 @@ export default function RootLayout({
           />
         ) : null}
       </head>
-      <body suppressHydrationWarning className="min-h-dvh font-sans antialiased">
+      <body suppressHydrationWarning className="h-dvh overflow-hidden font-sans antialiased">
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <Providers>{children}</Providers>
       </body>
