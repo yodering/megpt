@@ -576,6 +576,13 @@ export default function Home() {
             <ChatMessages
               messages={messages}
               isLoading={isLoading}
+              onContentResize={() => {
+                if (shouldAutoScrollRef.current) {
+                  window.requestAnimationFrame(() => {
+                    scrollMessagesToBottom("auto")
+                  })
+                }
+              }}
               onImageLoad={() => {
                 if (shouldAutoScrollRef.current) {
                   scrollMessagesToBottom("auto")

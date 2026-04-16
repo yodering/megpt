@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ChatMessage } from "@/components/chat-message"
 
 interface Message {
@@ -17,6 +17,7 @@ interface ChatMessagesProps {
   messages: Message[]
   isLoading?: boolean
   onImageLoad?: () => void
+  onContentResize?: () => void
 }
 
 const THINKING_LABELS = [
@@ -31,14 +32,28 @@ export function ChatMessages({
   messages,
   isLoading,
   onImageLoad,
+  onContentResize,
 }: ChatMessagesProps) {
+  const contentRef = useRef<HTMLDivElement>(null)
   const renderedMessages = groupRenderableMessages(messages)
   const lastMessage = renderedMessages[renderedMessages.length - 1]
   const showThinkingState = Boolean(isLoading && lastMessage?.role === "user")
 
+  useEffect(() => {
+    const contentElement = contentRef.current
+    if (!contentElement || typeof ResizeObserver === "undefined") return
+
+    const observer = new ResizeObserver(() => {
+      onContentResize?.()
+    })
+
+    observer.observe(contentElement)
+    return () => observer.disconnect()
+  }, [onContentResize])
+
   return (
     <div className="min-h-full">
-      <div className="mx-auto max-w-3xl px-3 py-3 sm:px-4 sm:py-4">
+      <div ref={contentRef} className="mx-auto max-w-3xl px-3 py-3 sm:px-4 sm:py-4">
         {renderedMessages.map((msg, i) => (
           <ChatMessage
             key={msg.key ?? i}
