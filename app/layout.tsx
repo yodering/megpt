@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { Providers } from "@/components/providers"
+import { UmamiAnalytics } from "@/components/umami-analytics"
 import "./globals.css"
 
 const geistSans = Geist({
@@ -74,6 +75,7 @@ export default function RootLayout({
       <body suppressHydrationWarning className="min-h-dvh font-sans antialiased">
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <Providers>{children}</Providers>
+        <UmamiAnalytics />
       </body>
     </html>
   )

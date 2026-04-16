@@ -25,6 +25,9 @@ DISCORD_NOTIFICATION_USER_ID=
 DISCORD_NOTIFICATION_ROLE_ID=
 MAX_PENDING_CONVERSATIONS=20
 MAX_PENDING_CONVERSATIONS_PER_USER=1
+NEXT_PUBLIC_UMAMI_SCRIPT_URL=
+NEXT_PUBLIC_UMAMI_WEBSITE_ID=
+NEXT_PUBLIC_UMAMI_DOMAINS=localhost
 ```
 
 Google auth uses JWT sessions. `DATABASE_URL` is used for app data such as conversations and messages.
@@ -54,6 +57,15 @@ MAX_PENDING_CONVERSATIONS_PER_USER=1
 4. Redeploy the web service. The app will create its own conversation tables on first database use.
 
 Railway usually injects a usable connection string after the services are linked. This project expects the standard `DATABASE_URL`.
+
+Optional Umami analytics:
+
+- `NEXT_PUBLIC_UMAMI_SCRIPT_URL`: tracker script URL, for example `https://stats.example.com/script.js`
+- `NEXT_PUBLIC_UMAMI_WEBSITE_ID`: website ID from Umami
+- `NEXT_PUBLIC_UMAMI_DOMAINS`: comma-separated hostnames to allow, for example `megpt.boo,www.megpt.boo`
+- `NEXT_PUBLIC_UMAMI_HOST_URL`: optional event endpoint override if it differs from the script origin
+
+The app only loads Umami in `production`, sets `data-do-not-track="true"`, and excludes URL search params by default.
 
 Optional reply-capacity controls:
 
