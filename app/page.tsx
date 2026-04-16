@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { ChatHeader } from "@/components/chat-header"
 import { ChatInput, type ComposerPayload } from "@/components/chat-input"
@@ -85,9 +85,10 @@ export default function Home() {
     (item) => item.status === "awaiting_admin" || item.status === "queued"
   )
   const inputDisabled = !identityReady || isLoading || hasPendingConversation
-  const guestHeaders: Record<string, string> | undefined = guestId
-    ? { "x-guest-id": guestId }
-    : undefined
+  const guestHeaders: Record<string, string> | undefined = useMemo(
+    () => (guestId ? { "x-guest-id": guestId } : undefined),
+    [guestId]
+  )
   const jsonHeaders: Record<string, string> = guestId
     ? {
         "Content-Type": "application/json",
@@ -113,6 +114,25 @@ export default function Home() {
       isNew,
     }
   }
+
+  const applyConversationSnapshot = useEffectEvent((data: {
+    conversations: ConversationSummary[]
+    activeConversation: Conversation | null
+    messages: ConversationMessagePayload[]
+  }) => {
+    setComposerNotice(null)
+    setConversations(data.conversations)
+    setConversationId(data.activeConversation?.id ?? null)
+    setConversation(data.activeConversation)
+    setMessages(data.messages.map((message) => toUiMessage(message)))
+
+    if (
+      data.activeConversation?.status !== "awaiting_admin" &&
+      data.activeConversation?.status !== "queued"
+    ) {
+      setIsLoading(false)
+    }
+  })
 
   function beginConversationRequest() {
     conversationRequestIdRef.current += 1
@@ -153,11 +173,7 @@ export default function Home() {
       if (!response.ok) return
       const data = await response.json()
       if (requestId !== conversationRequestIdRef.current) return
-      setComposerNotice(null)
-      setConversations(data.conversations)
-      setConversationId(data.activeConversation?.id ?? null)
-      setConversation(data.activeConversation)
-      setMessages(data.messages.map((message: ConversationMessagePayload) => toUiMessage(message)))
+      applyConversationSnapshot(data)
     }
 
     loadConversation()
@@ -204,6 +220,46 @@ export default function Home() {
 
     return () => es.close()
   }, [conversationId, identityReady])
+
+  useEffect(() => {
+    if (!identityReady || !conversationId) return
+    if (
+      activeConversationStatus !== "awaiting_admin" &&
+      activeConversationStatus !== "queued"
+    ) {
+      return
+    }
+
+    let cancelled = false
+
+    const refreshConversation = async () => {
+      const response = await fetch(`/api/conversation?conversationId=${conversationId}`, {
+        cache: "no-store",
+        headers: guestHeaders,
+      }).catch(() => null)
+
+      if (!response?.ok || cancelled) return
+
+      const data = await response.json().catch(() => null)
+      if (!data || cancelled) return
+
+      applyConversationSnapshot(data)
+    }
+
+    const interval = window.setInterval(() => {
+      void refreshConversation()
+    }, 5000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
+  }, [
+    activeConversationStatus,
+    conversationId,
+    guestHeaders,
+    identityReady,
+  ])
 
   async function handleSend({ text, image }: ComposerPayload) {
     if (!identityReady) return false

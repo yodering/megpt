@@ -84,8 +84,6 @@ export default function RootLayout({
             data-website-id={umamiWebsiteId}
             data-domains={umamiDomains}
             data-host-url={umamiHostUrl}
-            data-do-not-track="true"
-            data-exclude-search="true"
           />
         ) : null}
       </head>
