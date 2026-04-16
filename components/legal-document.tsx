@@ -41,7 +41,7 @@ export function LegalDocument({
   const otherTabHref = isPrivacy ? "/terms" : "/privacy"
 
   return (
-    <main className="min-h-dvh overflow-y-auto bg-background text-foreground">
+    <main className="momentum-scroll h-dvh overflow-y-auto bg-background text-foreground">
       <header className="border-b border-border/80 bg-background">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-5">
           <div className="flex items-center gap-3">
