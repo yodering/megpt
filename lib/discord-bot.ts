@@ -15,7 +15,7 @@ import {
   upsertDiscordThread,
 } from "@/lib/discord-threads"
 import {
-  getUploadedImageFilePath,
+  readUploadedImageByUrl,
   resolveSupportedImageMimeType,
   saveRemoteImage,
 } from "@/lib/image-uploads"
@@ -62,14 +62,28 @@ function buildThreadName(conversation: ConversationIdentity) {
   return `${collapsed} • #${conversation.id}`
 }
 
-function formatUserMessage(
+function getAttachmentNameForMimeType(mimeType: string) {
+  switch (mimeType) {
+    case "image/jpeg":
+      return "upload.jpg"
+    case "image/png":
+      return "upload.png"
+    case "image/gif":
+      return "upload.gif"
+    case "image/webp":
+      return "upload.webp"
+    case "image/avif":
+      return "upload.avif"
+    default:
+      return "upload"
+  }
+}
+
+async function formatUserMessage(
   config: NonNullable<ReturnType<typeof getDiscordConfig>>,
   conversation: ConversationIdentity,
   message: ConversationMessage
-): MessageCreateOptions {
-  const imageFilePath = message.imageUrl
-    ? getUploadedImageFilePath(message.imageUrl)
-    : null
+): Promise<MessageCreateOptions> {
   const mentions = buildNotificationMentions(config)
   const header = [
     mentions.contentPrefix,
@@ -80,14 +94,23 @@ function formatUserMessage(
   const bodyLines =
     message.contentType === "image"
       ? [
-          imageFilePath ? "Image upload" : `Image upload: ${message.imageUrl ?? ""}`,
+          message.imageUrl ? "Image upload" : `Image upload: ${message.imageUrl ?? ""}`,
           message.body,
         ].filter(Boolean)
       : [message.body]
 
+  const uploadedImage = message.imageUrl
+    ? await readUploadedImageByUrl(message.imageUrl)
+    : null
+  const imageAttachment = uploadedImage
+    ? new AttachmentBuilder(uploadedImage.buffer, {
+        name: getAttachmentNameForMimeType(uploadedImage.mimeType),
+      })
+    : undefined
+
   return {
     content: [header, "", ...bodyLines].join("\n"),
-    files: imageFilePath ? [new AttachmentBuilder(imageFilePath)] : undefined,
+    files: imageAttachment ? [imageAttachment] : undefined,
     allowedMentions: mentions.allowedMentions,
   }
 }
@@ -403,7 +426,7 @@ export async function syncUserMessageToDiscord(
     unarchiveReason: "New user message",
   })
 
-  const discordMessage = formatUserMessage(config, conversation, message)
+  const discordMessage = await formatUserMessage(config, conversation, message)
 
   try {
     await thread.send(discordMessage)

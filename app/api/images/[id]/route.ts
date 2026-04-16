@@ -5,10 +5,10 @@ export const runtime = "nodejs"
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ filename: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { filename } = await params
-  const image = await readUploadedImageByUrl(`/uploads/${filename}`)
+  const { id } = await params
+  const image = await readUploadedImageByUrl(`/api/images/${id}`)
 
   if (!image) {
     return new Response("Not found", { status: 404 })
@@ -20,6 +20,7 @@ export async function GET(
     headers: {
       "Content-Type": image.mimeType,
       "Cache-Control": "public, max-age=31536000, immutable",
+      "Content-Length": String(body.byteLength),
     },
   })
 }

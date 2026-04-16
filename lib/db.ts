@@ -64,10 +64,19 @@ export async function ensureAppSchema() {
           "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
 
+        CREATE TABLE IF NOT EXISTS uploaded_images (
+          id TEXT PRIMARY KEY,
+          "mimeType" VARCHAR(128) NOT NULL,
+          "byteSize" INTEGER NOT NULL,
+          data BYTEA NOT NULL,
+          "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+
         CREATE INDEX IF NOT EXISTS messages_conversation_id_idx ON messages("conversationId");
         CREATE INDEX IF NOT EXISTS conversations_last_message_at_idx ON conversations("lastMessageAt");
         CREATE INDEX IF NOT EXISTS conversations_user_email_idx ON conversations("userEmail");
         CREATE INDEX IF NOT EXISTS discord_threads_thread_id_idx ON discord_threads("threadId");
+        CREATE INDEX IF NOT EXISTS uploaded_images_created_at_idx ON uploaded_images("createdAt");
       `)
 
       await pool.query(`

@@ -1,7 +1,8 @@
 import { randomUUID } from "crypto"
-import { mkdir, readFile, unlink, writeFile } from "fs/promises"
+import { readFile, unlink } from "fs/promises"
 import path from "path"
 import sharp from "sharp"
+import { ensureAppSchema, getDbPool } from "@/lib/db"
 
 const uploadDirectory = path.join(process.cwd(), "public", "uploads")
 const allowedMimeTypes = new Map<string, string>([
@@ -72,22 +73,43 @@ export function resolveSupportedImageMimeType(options: {
   )
 }
 
-async function writeImageBuffer(buffer: Buffer, mimeType: string) {
+function getLegacyUploadedImageFilePath(imageUrl: string) {
+  const match = imageUrl.match(/^\/(?:api\/)?uploads\/([^/?#]+)$/)
+  if (!match) {
+    return null
+  }
+
+  return path.join(uploadDirectory, match[1])
+}
+
+function getStoredImageId(imageUrl: string) {
+  const match = imageUrl.match(/^\/api\/images\/([^/?#]+)$/)
+  return match?.[1] ?? null
+}
+
+function getPublicImageUrl(imageId: string) {
+  return `/api/images/${imageId}`
+}
+
+async function storeImageBuffer(buffer: Buffer, mimeType: string) {
   const extension = getExtensionForMimeType(mimeType)
   if (!extension) {
     throw new Error("Unsupported image type.")
   }
 
-  const fileName = `${randomUUID()}${extension}`
-  const publicUrl = `/uploads/${fileName}`
-  const filePath = path.join(uploadDirectory, fileName)
+  await ensureAppSchema()
+  const pool = getDbPool()
+  const imageId = `${randomUUID()}${extension}`
 
-  await mkdir(uploadDirectory, { recursive: true })
-  await writeFile(filePath, buffer)
+  await pool.query(
+    `INSERT INTO uploaded_images (id, "mimeType", "byteSize", data)
+     VALUES ($1, $2, $3, $4)`,
+    [imageId, mimeType, buffer.byteLength, buffer]
+  )
 
   return {
-    filePath,
-    publicUrl,
+    imageId,
+    publicUrl: getPublicImageUrl(imageId),
   }
 }
 
@@ -111,31 +133,46 @@ async function normalizeRemoteImageBufferForBrowserCompatibility(buffer: Buffer)
     return { buffer, mimeType: "image/gif" }
   }
 
-  // Normalize newer or inconsistent formats so Safari/mobile rendering is predictable.
   const normalizedBuffer = await sharp(buffer, { animated: true }).png().toBuffer()
   return { buffer: normalizedBuffer, mimeType: "image/png" }
 }
 
-export function getUploadedImageFilePath(imageUrl: string) {
-  const match = imageUrl.match(/^\/(?:api\/)?uploads\/([^/?#]+)$/)
-  if (!match) {
-    return null
+export async function readUploadedImageByUrl(imageUrl: string) {
+  const imageId = getStoredImageId(imageUrl)
+  if (imageId) {
+    await ensureAppSchema()
+    const pool = getDbPool()
+    const result = await pool.query<{
+      id: string
+      mimeType: string
+      data: Buffer
+    }>(
+      `SELECT id, "mimeType" AS "mimeType", data
+       FROM uploaded_images
+       WHERE id = $1
+       LIMIT 1`,
+      [imageId]
+    )
+
+    const row = result.rows[0]
+    if (!row) {
+      return null
+    }
+
+    return {
+      buffer: row.data,
+      mimeType: row.mimeType,
+      filePath: null,
+      imageId: row.id,
+    }
   }
 
-  return path.join(uploadDirectory, match[1])
-}
-
-export function getMimeTypeForStoredImagePath(filePath: string) {
-  return getMimeTypeForFileName(filePath)
-}
-
-export async function readUploadedImageByUrl(imageUrl: string) {
-  const filePath = getUploadedImageFilePath(imageUrl)
+  const filePath = getLegacyUploadedImageFilePath(imageUrl)
   if (!filePath) {
     return null
   }
 
-  const mimeType = getMimeTypeForStoredImagePath(filePath)
+  const mimeType = getMimeTypeForFileName(filePath)
   if (!mimeType) {
     return null
   }
@@ -149,13 +186,22 @@ export async function readUploadedImageByUrl(imageUrl: string) {
     buffer,
     mimeType,
     filePath,
+    imageId: null,
   }
 }
 
 export async function deleteUploadedImageByUrl(imageUrl: string | null | undefined) {
   if (!imageUrl) return
 
-  const filePath = getUploadedImageFilePath(imageUrl)
+  const imageId = getStoredImageId(imageUrl)
+  if (imageId) {
+    await ensureAppSchema()
+    const pool = getDbPool()
+    await pool.query(`DELETE FROM uploaded_images WHERE id = $1`, [imageId]).catch(() => undefined)
+    return
+  }
+
+  const filePath = getLegacyUploadedImageFilePath(imageUrl)
   if (!filePath) return
 
   await unlink(filePath).catch(() => undefined)
@@ -176,7 +222,7 @@ export async function saveUploadedImage(file: File) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer())
-  return writeImageBuffer(buffer, mimeType)
+  return storeImageBuffer(buffer, mimeType)
 }
 
 export async function saveRemoteImage(
@@ -211,5 +257,5 @@ export async function saveRemoteImage(
     () => ({ buffer, mimeType: resolvedMimeType })
   )
 
-  return writeImageBuffer(normalizedImage.buffer, normalizedImage.mimeType)
+  return storeImageBuffer(normalizedImage.buffer, normalizedImage.mimeType)
 }
