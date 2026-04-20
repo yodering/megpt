@@ -37,6 +37,11 @@ type ConversationIdentity = {
   userName: string | null
 }
 
+type DiscordUserSyncOptions = {
+  notify?: boolean
+  notifyOnThreadCreate?: boolean
+}
+
 function getDiscordConfig() {
   const token = process.env.DISCORD_BOT_TOKEN
   const guildId = process.env.DISCORD_GUILD_ID
@@ -86,15 +91,24 @@ function getAttachmentNameForMimeType(mimeType: string) {
 async function formatUserMessage(
   config: NonNullable<ReturnType<typeof getDiscordConfig>>,
   conversation: ConversationIdentity,
-  message: ConversationMessage
+  message: ConversationMessage,
+  options?: DiscordUserSyncOptions
 ): Promise<MessageCreateOptions> {
-  const mentions = buildNotificationMentions(config)
+  const mentions =
+    options?.notify === false
+      ? {
+          contentPrefix: "",
+          allowedMentions: { parse: [] as const },
+        }
+      : buildNotificationMentions(config)
   const header = [
     mentions.contentPrefix,
     `New user message`,
     `Conversation: #${conversation.id}`,
     `User: ${conversation.userName || "Unknown"} <${conversation.userEmail}>`,
-  ].join("\n")
+  ]
+    .filter(Boolean)
+    .join("\n")
   const bodyLines =
     message.contentType === "image"
       ? [
@@ -249,7 +263,8 @@ async function sendNewThreadNotification(
 
 async function findOrCreateThread(
   client: Client,
-  conversation: ConversationIdentity
+  conversation: ConversationIdentity,
+  options?: { notifyOnThreadCreate?: boolean }
 ) {
   const config = getDiscordConfig()
   if (!config) return null
@@ -278,7 +293,7 @@ async function findOrCreateThread(
 
   await thread.send(formatThreadOpenedMessage(conversation))
 
-  if (config.notificationChannelId) {
+  if (config.notificationChannelId && options?.notifyOnThreadCreate !== false) {
     await sendNewThreadNotification(client, config, conversation, thread)
   }
 
@@ -425,21 +440,29 @@ export async function ensureDiscordBot() {
 
 export async function syncUserMessageToDiscord(
   conversation: ConversationIdentity,
-  message: ConversationMessage
+  message: ConversationMessage,
+  options?: DiscordUserSyncOptions
 ) {
   const client = await ensureDiscordBot()
   if (!client) return
   const config = getDiscordConfig()
   if (!config) return
 
-  const thread = await findOrCreateThread(client, conversation)
+  const thread = await findOrCreateThread(client, conversation, {
+    notifyOnThreadCreate: options?.notifyOnThreadCreate,
+  })
   if (!thread) return
 
   await syncThreadPresentation(thread, conversation, {
     unarchiveReason: "New user message",
   })
 
-  const discordMessage = await formatUserMessage(config, conversation, message)
+  const discordMessage = await formatUserMessage(
+    config,
+    conversation,
+    message,
+    options
+  )
 
   try {
     await thread.send(discordMessage)
