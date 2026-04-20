@@ -3,7 +3,9 @@ import {
   promoteOldestQueuedConversation,
   type ConversationRecord,
 } from "@/lib/conversations"
+import { getDiscordThreadByConversationId } from "@/lib/discord-threads"
 import { syncUserMessageToDiscord } from "@/lib/discord-bot"
+import { cleanupStalePendingConversations } from "@/lib/stale-pending-conversations"
 
 const fallbackActiveConversationLimit = 1
 const configuredActiveConversationLimit = Number(
@@ -15,24 +17,41 @@ export const MAX_ACTIVE_PENDING_CONVERSATIONS =
     ? configuredActiveConversationLimit
     : fallbackActiveConversationLimit
 
-export async function promoteNextQueuedConversation() {
-  const conversation = await promoteOldestQueuedConversation(
-    MAX_ACTIVE_PENDING_CONVERSATIONS
-  )
-  if (!conversation) return null
+export async function normalizePendingConversationQueue() {
+  const releasedCount = await cleanupStalePendingConversations()
+  const promotedConversations: ConversationRecord[] = []
 
-  await syncQueuedConversationToDiscord(conversation)
-  return conversation
+  while (true) {
+    const conversation = await promoteOldestQueuedConversation(
+      MAX_ACTIVE_PENDING_CONVERSATIONS
+    )
+    if (!conversation) {
+      return {
+        releasedCount,
+        promotedConversations,
+      }
+    }
+
+    await syncQueuedConversationToDiscord(conversation)
+    promotedConversations.push(conversation)
+  }
+}
+
+export async function promoteNextQueuedConversation() {
+  const { promotedConversations } = await normalizePendingConversationQueue()
+  return promotedConversations[0] ?? null
 }
 
 async function syncQueuedConversationToDiscord(conversation: ConversationRecord) {
+  const existingThread = await getDiscordThreadByConversationId(conversation.id)
+  if (existingThread) {
+    return
+  }
+
   const messages = await listMessagesForConversation(conversation.id)
 
   for (const message of messages) {
     if (message.senderType !== "user") continue
-    await syncUserMessageToDiscord(conversation, message, {
-      notify: false,
-      notifyOnThreadCreate: false,
-    })
+    await syncUserMessageToDiscord(conversation, message)
   }
 }

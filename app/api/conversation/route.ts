@@ -4,6 +4,7 @@ import {
   getConversationForUser,
   listConversationsForUser,
 } from "@/lib/conversations"
+import { normalizePendingConversationQueue } from "@/lib/conversation-queue"
 import { ensureDiscordBot } from "@/lib/discord-bot"
 import { cleanupExpiredGuestConversations } from "@/lib/guest-conversations"
 import { getRequestIdentity } from "@/lib/request-identity"
@@ -12,6 +13,7 @@ export const runtime = "nodejs"
 
 export async function GET(req: NextRequest) {
   await ensureDiscordBot()
+  await normalizePendingConversationQueue()
   const identity = await getRequestIdentity(req)
 
   if (!identity) {
@@ -38,6 +40,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  await normalizePendingConversationQueue()
   const identity = await getRequestIdentity(req)
 
   if (!identity) {

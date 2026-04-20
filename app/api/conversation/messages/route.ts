@@ -9,7 +9,10 @@ import {
   getConversationByIdForUser,
   getOrCreateConversationForUser,
 } from "@/lib/conversations"
-import { MAX_ACTIVE_PENDING_CONVERSATIONS } from "@/lib/conversation-queue"
+import {
+  MAX_ACTIVE_PENDING_CONVERSATIONS,
+  normalizePendingConversationQueue,
+} from "@/lib/conversation-queue"
 import { syncUserMessageToDiscord } from "@/lib/discord-bot"
 import { cleanupExpiredGuestConversations } from "@/lib/guest-conversations"
 import {
@@ -57,6 +60,7 @@ async function parseIncomingMessage(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  await normalizePendingConversationQueue()
   const identity = await getRequestIdentity(req)
 
   if (!identity) {
@@ -151,9 +155,10 @@ export async function POST(req: NextRequest) {
   const updatedConversation = await getConversationById(conversation.id)
 
   try {
-    if (nextStatus === ACTIVE_OPERATOR_STATUS) {
-      await syncUserMessageToDiscord(updatedConversation ?? conversation, message)
-    }
+    await syncUserMessageToDiscord(updatedConversation ?? conversation, message, {
+      notify: nextStatus === ACTIVE_OPERATOR_STATUS,
+      notifyOnThreadCreate: nextStatus === ACTIVE_OPERATOR_STATUS,
+    })
   } catch (error) {
     console.error("Failed to sync user message to Discord", error)
   }

@@ -340,6 +340,23 @@ export async function listConversationIdsForGuestUsersLastUpdatedBefore(updatedB
   return result.rows.map((row) => row.id)
 }
 
+export async function releasePendingConversationsLastUpdatedBefore(updatedBefore: Date) {
+  await ensureAppSchema()
+  const pool = getDbPool()
+  const result = await pool.query<{ id: number }>(
+    `UPDATE conversations
+     SET
+       status = 'open',
+       "updatedAt" = NOW()
+     WHERE status = ANY($1::text[])
+       AND "lastMessageAt" < $2
+     RETURNING id`,
+    [PENDING_OPERATOR_STATUSES, updatedBefore]
+  )
+
+  return result.rows.map((row) => row.id)
+}
+
 export async function listConversationsForUser(userEmail: string) {
   await ensureAppSchema()
   const pool = getDbPool()
