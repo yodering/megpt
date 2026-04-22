@@ -227,6 +227,26 @@ function formatNewThreadNotification(
   }
 }
 
+function formatReadyForReplyNotification(
+  config: NonNullable<ReturnType<typeof getDiscordConfig>>,
+  conversation: ConversationIdentity,
+  thread: ThreadChannel
+): MessageCreateOptions {
+  const mentions = buildNotificationMentions(config)
+  const lines = [
+    mentions.contentPrefix,
+    `Next query is ready: conversation #${conversation.id}`,
+    `User: ${conversation.userName || "Unknown"} <${conversation.userEmail}>`,
+    `Thread: ${thread.toString()}`,
+    buildThreadUrl(config.guildId, thread.id),
+  ].filter(Boolean)
+
+  return {
+    content: lines.join("\n"),
+    allowedMentions: mentions.allowedMentions,
+  }
+}
+
 async function getParentChannel(client: Client, parentChannelId: string) {
   const channel = await client.channels.fetch(parentChannelId)
 
@@ -259,6 +279,45 @@ async function sendNewThreadNotification(
   await (channel as TextChannel).send(
     formatNewThreadNotification(config, conversation, thread)
   )
+}
+
+async function sendReadyForReplyNotification(
+  client: Client,
+  config: NonNullable<ReturnType<typeof getDiscordConfig>>,
+  conversation: ConversationIdentity,
+  thread: ThreadChannel
+) {
+  if (config.notificationChannelId) {
+    const channel = await client.channels
+      .fetch(config.notificationChannelId)
+      .catch(() => null)
+
+    if (channel && channel.type === ChannelType.GuildText) {
+      await (channel as TextChannel).send(
+        formatReadyForReplyNotification(config, conversation, thread)
+      )
+      return
+    }
+
+    console.warn(
+      "DISCORD_NOTIFICATION_CHANNEL_ID must point to a text channel"
+    )
+  }
+
+  const mentions = buildNotificationMentions(config)
+  const content = [
+    mentions.contentPrefix,
+    `This conversation is next in the queue and ready for a reply.`,
+  ]
+    .filter(Boolean)
+    .join("\n")
+
+  if (!content) return
+
+  await thread.send({
+    content,
+    allowedMentions: mentions.allowedMentions,
+  })
 }
 
 async function findOrCreateThread(
@@ -470,6 +529,26 @@ export async function syncUserMessageToDiscord(
     console.error("Failed to send Discord user message with mentions", error)
     await thread.send(withoutMentions(discordMessage))
   }
+}
+
+export async function notifyConversationReadyForReply(
+  conversation: ConversationIdentity
+) {
+  const client = await ensureDiscordBot()
+  if (!client) return
+  const config = getDiscordConfig()
+  if (!config) return
+
+  const thread = await findOrCreateThread(client, conversation, {
+    notifyOnThreadCreate: false,
+  })
+  if (!thread) return
+
+  await syncThreadPresentation(thread, conversation, {
+    unarchiveReason: "Conversation reached the front of the queue",
+  })
+
+  await sendReadyForReplyNotification(client, config, conversation, thread)
 }
 
 export async function deleteDiscordThreadForConversation(conversationId: number) {

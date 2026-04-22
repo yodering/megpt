@@ -95,6 +95,7 @@ Behavior:
 - Pending conversations that sit too long are automatically released back to `open` so stale items do not block the queue forever.
 - Active conversations can include an optional user or role mention, which is useful if you want phone push notifications for the current item at the front of the queue.
 - Queued conversations still create Discord threads so you can manage the backlog there, but they are mirrored without the extra mention ping by default.
+- When a queued conversation reaches the front of the line, the bot sends a fresh Discord alert so you get pinged when it is actually time to reply.
 - Replies written in that Discord thread are saved back into Postgres and streamed to the user UI.
 - Image attachments in Discord replies are saved back into Postgres and displayed inline in the user UI.
 - The app will auto-create the `discord_threads` table on first database use.

@@ -4,7 +4,10 @@ import {
   type ConversationRecord,
 } from "@/lib/conversations"
 import { getDiscordThreadByConversationId } from "@/lib/discord-threads"
-import { syncUserMessageToDiscord } from "@/lib/discord-bot"
+import {
+  notifyConversationReadyForReply,
+  syncUserMessageToDiscord,
+} from "@/lib/discord-bot"
 import { cleanupStalePendingConversations } from "@/lib/stale-pending-conversations"
 
 const fallbackActiveConversationLimit = 1
@@ -45,6 +48,7 @@ export async function promoteNextQueuedConversation() {
 async function syncQueuedConversationToDiscord(conversation: ConversationRecord) {
   const existingThread = await getDiscordThreadByConversationId(conversation.id)
   if (existingThread) {
+    await notifyConversationReadyForReply(conversation)
     return
   }
 
