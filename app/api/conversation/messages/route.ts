@@ -155,10 +155,9 @@ export async function POST(req: NextRequest) {
   const updatedConversation = await getConversationById(conversation.id)
 
   try {
-    await syncUserMessageToDiscord(updatedConversation ?? conversation, message, {
-      notify: nextStatus === ACTIVE_OPERATOR_STATUS,
-      notifyOnThreadCreate: nextStatus === ACTIVE_OPERATOR_STATUS,
-    })
+    if (nextStatus === ACTIVE_OPERATOR_STATUS) {
+      await syncUserMessageToDiscord(updatedConversation ?? conversation, message)
+    }
   } catch (error) {
     console.error("Failed to sync user message to Discord", error)
   }
