@@ -277,7 +277,6 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
               <MenuButton
                 icon={Bell}
                 label="Notifications"
-                trailing={<SettingsValue>{notificationStatus}</SettingsValue>}
                 onClick={() => openSettings("notifications")}
               />
               <MenuLink icon={Info} href="/about" onNavigate={closeMenu}>
