@@ -18,6 +18,8 @@ const HeroPrompt = dynamic(
   }
 )
 
+const NOTIFICATIONS_STORAGE_KEY = "megpt-notifications-enabled"
+
 interface Message {
   key: string
   role: string
@@ -79,6 +81,7 @@ export default function Home() {
   const messagesScrollRef = useRef<HTMLDivElement>(null)
   const shouldAutoScrollRef = useRef(true)
   const previousConversationIdRef = useRef<number | null>(null)
+  const notifiedMessageKeysRef = useRef<Set<string>>(new Set())
 
   const identityKey =
     session?.user?.email ??
@@ -120,16 +123,55 @@ export default function Home() {
     }
   }
 
+  function notifyNewAssistantReply(nextMessages: Message[], shouldNotify: boolean) {
+    const latestAssistantMessage = [...nextMessages]
+      .reverse()
+      .find(
+        (message) =>
+          message.role === "assistant" &&
+          !notifiedMessageKeysRef.current.has(message.key)
+      )
+
+    for (const message of nextMessages) {
+      notifiedMessageKeysRef.current.add(message.key)
+    }
+
+    if (!latestAssistantMessage || !shouldNotify) return
+    if (typeof window === "undefined" || !("Notification" in window)) return
+    if (window.localStorage.getItem(NOTIFICATIONS_STORAGE_KEY) !== "true") return
+    if (Notification.permission !== "granted") return
+    if (!document.hidden) return
+
+    const body =
+      latestAssistantMessage.content.trim() ||
+      (latestAssistantMessage.contentType === "image"
+        ? "MeGPT sent an image."
+        : "MeGPT has a new reply.")
+
+    try {
+      new Notification("New MeGPT reply", {
+        body,
+        icon: "/icon.svg",
+        tag: latestAssistantMessage.key,
+      })
+    } catch {
+      window.localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, "false")
+    }
+  }
+
   const applyConversationSnapshot = useEffectEvent((data: {
     conversations: ConversationSummary[]
     activeConversation: Conversation | null
     messages: ConversationMessagePayload[]
-  }) => {
+  }, options?: { notify?: boolean }) => {
+    const nextMessages = data.messages.map((message) => toUiMessage(message))
+
     setComposerNotice(null)
     setConversations(data.conversations)
     setConversationId(data.activeConversation?.id ?? null)
     setConversation(data.activeConversation)
-    setMessages(data.messages.map((message) => toUiMessage(message)))
+    notifyNewAssistantReply(nextMessages, Boolean(options?.notify))
+    setMessages(nextMessages)
 
     if (data.activeConversation?.status !== "awaiting_admin") {
       setIsLoading(false)
@@ -241,7 +283,7 @@ export default function Home() {
       const data = await response.json().catch(() => null)
       if (!data || cancelled) return
 
-      applyConversationSnapshot(data)
+      applyConversationSnapshot(data, { notify: true })
     }
 
     const interval = window.setInterval(() => {

@@ -6,28 +6,21 @@ import { signIn, signOut, useSession } from "next-auth/react"
 import { createPortal } from "react-dom"
 import {
   Bell,
-  Blocks,
   Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleHelp,
-  Clock3,
-  Database,
   FileText,
+  Info,
   LogIn,
   LogOut,
   Monitor,
   Moon,
-  Plus,
   Settings2,
   Shield,
-  SlidersHorizontal,
-  Sparkles,
   Sun,
   UserCircle2,
-  Users,
-  Volume2,
   X,
   type LucideIcon,
 } from "lucide-react"
@@ -41,34 +34,34 @@ interface ProfileMenuProps {
 
 type MenuView = "main" | "help"
 type ThemePreference = "light" | "dark" | "system"
-type SettingsSectionId =
-  | "general"
-  | "notifications"
-  | "personalization"
-  | "apps"
-  | "schedules"
-  | "orders"
-  | "data-controls"
-  | "security"
-  | "parental-controls"
-  | "account"
+type SettingsSectionId = "account" | "appearance" | "notifications"
+
+const NOTIFICATIONS_STORAGE_KEY = "megpt-notifications-enabled"
 
 const SETTINGS_SECTIONS: Array<{
   id: SettingsSectionId
   label: string
   icon: LucideIcon
 }> = [
-  { id: "general", label: "General", icon: Settings2 },
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "personalization", label: "Personalization", icon: SlidersHorizontal },
-  { id: "apps", label: "Apps", icon: Blocks },
-  { id: "schedules", label: "Schedules", icon: Clock3 },
-  { id: "orders", label: "Orders", icon: FileText },
-  { id: "data-controls", label: "Data controls", icon: Database },
-  { id: "security", label: "Security", icon: Shield },
-  { id: "parental-controls", label: "Parental controls", icon: Users },
   { id: "account", label: "Account", icon: UserCircle2 },
+  { id: "appearance", label: "Appearance", icon: Settings2 },
+  { id: "notifications", label: "Notifications", icon: Bell },
 ]
+
+function getStoredNotificationsPreference() {
+  if (typeof window === "undefined") return false
+  return window.localStorage.getItem(NOTIFICATIONS_STORAGE_KEY) === "true"
+}
+
+function getNotificationPermissionLabel() {
+  if (typeof window === "undefined" || !("Notification" in window)) {
+    return "Not supported"
+  }
+
+  if (Notification.permission === "granted") return "Allowed"
+  if (Notification.permission === "denied") return "Blocked"
+  return "Not enabled"
+}
 
 export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
   const { data: session } = useSession()
@@ -77,20 +70,13 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
   const [menuView, setMenuView] = useState<MenuView>("main")
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [activeSettingsSection, setActiveSettingsSection] =
-    useState<SettingsSectionId>("general")
-  const [desktopNotificationsEnabled, setDesktopNotificationsEnabled] =
-    useState(false)
-  const [replySoundsEnabled, setReplySoundsEnabled] = useState(true)
-  const [emailSummariesEnabled, setEmailSummariesEnabled] = useState(false)
-  const [memoryEnabled, setMemoryEnabled] = useState(true)
-  const [separateVoiceEnabled, setSeparateVoiceEnabled] = useState(false)
-  const [chatHistoryEnabled, setChatHistoryEnabled] = useState(true)
-  const [familyModeEnabled, setFamilyModeEnabled] = useState(false)
-  const [guardrailsEnabled, setGuardrailsEnabled] = useState(true)
+    useState<SettingsSectionId>("account")
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false)
+  const [notificationStatus, setNotificationStatus] = useState("Not enabled")
   const rootRef = useRef<HTMLDivElement>(null)
   const userLabel = session?.user?.name || session?.user?.email || "Guest"
   const userInitial = userLabel[0]?.toUpperCase() || "G"
-  const planLabel = session ? "Plus" : "Guest"
+  const accountLabel = session ? "Signed in" : "Guest mode"
 
   function openMenu() {
     setMenuView("main")
@@ -124,6 +110,54 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
     blurActiveElement()
     void signOut({ callbackUrl: "/" })
   }
+
+  async function toggleNotifications() {
+    if (notificationsEnabled) {
+      window.localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, "false")
+      setNotificationsEnabled(false)
+      setNotificationStatus(getNotificationPermissionLabel())
+      return
+    }
+
+    if (!("Notification" in window)) {
+      setNotificationStatus("Not supported")
+      return
+    }
+
+    const permission =
+      Notification.permission === "default"
+        ? await Notification.requestPermission()
+        : Notification.permission
+
+    if (permission === "granted") {
+      window.localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, "true")
+      setNotificationsEnabled(true)
+      setNotificationStatus("Allowed")
+      return
+    }
+
+    window.localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, "false")
+    setNotificationsEnabled(false)
+    setNotificationStatus(permission === "denied" ? "Blocked" : "Not enabled")
+  }
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const nextNotificationsEnabled =
+        getStoredNotificationsPreference() &&
+        "Notification" in window &&
+        Notification.permission === "granted"
+
+      if (!nextNotificationsEnabled) {
+        window.localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, "false")
+      }
+
+      setNotificationsEnabled(nextNotificationsEnabled)
+      setNotificationStatus(getNotificationPermissionLabel())
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [])
 
   useEffect(() => {
     if (!isMenuOpen) return
@@ -182,7 +216,7 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
             </span>
             <span className="min-w-0 text-left">
               <span className="block truncate text-sm font-medium">{userLabel}</span>
-              <span className="block text-sm text-muted-foreground">{planLabel}</span>
+              <span className="block text-sm text-muted-foreground">{accountLabel}</span>
             </span>
           </span>
           <ChevronDown
@@ -213,17 +247,11 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
                   <p className="truncate text-[17px] font-medium text-foreground">
                     {userLabel}
                   </p>
-                  <p className="truncate text-sm text-muted-foreground">{planLabel}</p>
+                  <p className="truncate text-sm text-muted-foreground">{accountLabel}</p>
                 </div>
               </div>
 
-              {session ? (
-                <MenuButton
-                  icon={Plus}
-                  label="Add another account"
-                  badge="Soon"
-                />
-              ) : (
+              {!session ? (
                 <MenuButton
                   icon={LogIn}
                   label="Sign in with Google"
@@ -232,28 +260,29 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
                     startGoogleSignIn()
                   }}
                 />
-              )}
+              ) : null}
 
               <Divider />
 
-              {session ? (
-                <MenuButton icon={Sparkles} label="Upgrade plan" badge="Soon" />
-              ) : null}
-              <MenuButton
-                icon={SlidersHorizontal}
-                label="Personalization"
-                onClick={() => openSettings("personalization")}
-              />
               <MenuButton
                 icon={UserCircle2}
-                label="Profile"
+                label="Account"
                 onClick={() => openSettings("account")}
               />
               <MenuButton
                 icon={Settings2}
-                label="Settings"
-                onClick={() => openSettings("general")}
+                label="Appearance"
+                onClick={() => openSettings("appearance")}
               />
+              <MenuButton
+                icon={Bell}
+                label="Notifications"
+                trailing={<SettingsValue>{notificationStatus}</SettingsValue>}
+                onClick={() => openSettings("notifications")}
+              />
+              <MenuLink icon={Info} href="/about" onNavigate={closeMenu}>
+                About
+              </MenuLink>
 
               <Divider />
 
@@ -297,18 +326,16 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
                 <div>
                   <p className="text-[17px] font-medium text-foreground">Help</p>
                   <p className="text-sm text-muted-foreground">
-                    Support links and placeholders
+                    Project information and policies
                   </p>
                 </div>
               </div>
 
               <Divider />
 
-              <MenuButton
-                icon={CircleHelp}
-                label="Help center"
-                badge="Soon"
-              />
+              <MenuLink icon={Info} href="/about" onNavigate={closeMenu}>
+                About MeGPT
+              </MenuLink>
               <MenuLink icon={Shield} href="/privacy" onNavigate={closeMenu}>
                 Privacy Policy
               </MenuLink>
@@ -330,8 +357,8 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
                 }
               }}
             >
-              <div className="flex h-[min(48rem,calc(100dvh-1rem))] w-[min(70rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-[2rem] border border-border bg-popover shadow-[0_30px_100px_rgba(0,0,0,0.24)] md:h-[min(52rem,calc(100dvh-3rem))] md:flex-row">
-                <aside className="flex w-full shrink-0 flex-col border-b border-border bg-card/45 px-3 py-3 md:w-[20rem] md:border-b-0 md:border-r md:px-4 md:py-5">
+              <div className="flex h-[min(36rem,calc(100dvh-1rem))] w-[min(56rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-[2rem] border border-border bg-popover shadow-[0_30px_100px_rgba(0,0,0,0.24)] md:flex-row">
+                <aside className="flex w-full shrink-0 flex-col border-b border-border bg-card/45 px-3 py-3 md:w-[15rem] md:border-b-0 md:border-r md:px-4 md:py-5">
                   <div className="flex items-center justify-between">
                     <button
                       type="button"
@@ -373,251 +400,8 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
                       )?.label ?? "Settings"}
                     />
 
-                    {activeSettingsSection === "general" ? (
-                      <>
-                        <SettingsRow
-                          label="Appearance"
-                          trailing={
-                            <ThemePreferenceControl
-                              theme={theme}
-                              setTheme={setTheme}
-                            />
-                          }
-                        />
-                        <SettingsRow
-                          label="Contrast"
-                          trailing={<SettingsValue>System</SettingsValue>}
-                        />
-                        <SettingsRow
-                          label="Accent color"
-                          trailing={
-                            <SettingsValue>
-                              <span className="inline-flex items-center gap-2">
-                                <span className="h-3 w-3 rounded-full bg-[#8b5cf6]" />
-                                Purple
-                              </span>
-                            </SettingsValue>
-                          }
-                        />
-                        <SettingsRow
-                          label="Language"
-                          trailing={<SettingsValue>Auto-detect</SettingsValue>}
-                        />
-                        <SettingsRow
-                          label="Spoken language"
-                          description="For best results, select the language you mainly speak. If it's not listed, it may still be supported via auto-detection."
-                          trailing={<SettingsValue>Auto-detect</SettingsValue>}
-                        />
-                        <SettingsRow
-                          label="Voice"
-                          trailing={
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                className="rounded-full border border-border px-3 py-1.5 text-sm text-foreground hover:bg-accent"
-                              >
-                                Play
-                              </button>
-                              <SettingsValue>
-                                <span className="inline-flex items-center gap-2">
-                                  <Volume2 className="h-4 w-4" />
-                                  Sol
-                                </span>
-                              </SettingsValue>
-                            </div>
-                          }
-                        />
-                        <SettingsRow
-                          label="Separate Voice"
-                          description="Keep MeGPT Voice in a separate full screen, without real time transcripts and visuals."
-                          trailing={
-                            <Toggle
-                              checked={separateVoiceEnabled}
-                              onClick={() =>
-                                setSeparateVoiceEnabled((current) => !current)
-                              }
-                            />
-                          }
-                        />
-                      </>
-                    ) : null}
-
-                    {activeSettingsSection === "notifications" ? (
-                      <>
-                        <SettingsRow
-                          label="Push notifications"
-                          description="Notify you when MeGPT has a reply waiting."
-                          trailing={
-                            <Toggle
-                              checked={desktopNotificationsEnabled}
-                              onClick={() =>
-                                setDesktopNotificationsEnabled((current) => !current)
-                              }
-                            />
-                          }
-                        />
-                        <SettingsRow
-                          label="Reply sounds"
-                          description="Play a small chime when new replies arrive."
-                          trailing={
-                            <Toggle
-                              checked={replySoundsEnabled}
-                              onClick={() => setReplySoundsEnabled((current) => !current)}
-                            />
-                          }
-                        />
-                        <SettingsRow
-                          label="Email summaries"
-                          description="Placeholder surface for digest emails and reminders."
-                          trailing={
-                            <Toggle
-                              checked={emailSummariesEnabled}
-                              onClick={() =>
-                                setEmailSummariesEnabled((current) => !current)
-                              }
-                            />
-                          }
-                        />
-                      </>
-                    ) : null}
-
-                    {activeSettingsSection === "personalization" ? (
-                      <>
-                        <SettingsRow
-                          label="Custom instructions"
-                          description="Tell MeGPT how you like it to respond. This is a placeholder for a fuller instruction editor."
-                          trailing={<SettingsValue>Soon</SettingsValue>}
-                        />
-                        <SettingsRow
-                          label="Memory"
-                          description="Remember preferences and recurring details across conversations."
-                          trailing={
-                            <Toggle
-                              checked={memoryEnabled}
-                              onClick={() => setMemoryEnabled((current) => !current)}
-                            />
-                          }
-                        />
-                        <SettingsRow
-                          label="Interface density"
-                          trailing={<SettingsValue>Comfortable</SettingsValue>}
-                        />
-                      </>
-                    ) : null}
-
-                    {activeSettingsSection === "apps" ? (
-                      <>
-                        <SettingsRow
-                          label="Connected tools"
-                          description="Surface for installed capabilities and future integrations."
-                          trailing={<SettingsValue>1 active</SettingsValue>}
-                        />
-                        <SettingsRow
-                          label="File attachments"
-                          description="Images can already be attached in chat. Additional app actions can land here later."
-                          trailing={<SettingsValue>Enabled</SettingsValue>}
-                        />
-                      </>
-                    ) : null}
-
-                    {activeSettingsSection === "schedules" ? (
-                      <>
-                        <SettingsRow
-                          label="Daily brief"
-                          description="Placeholder for scheduled summaries and reminders."
-                          trailing={<SettingsValue>Off</SettingsValue>}
-                        />
-                        <SettingsRow
-                          label="Timezone"
-                          trailing={<SettingsValue>Local</SettingsValue>}
-                        />
-                      </>
-                    ) : null}
-
-                    {activeSettingsSection === "orders" ? (
-                      <>
-                        <SettingsRow
-                          label="Purchases"
-                          description="No billing or purchase history is available in MeGPT yet."
-                          trailing={<SettingsValue>None</SettingsValue>}
-                        />
-                      </>
-                    ) : null}
-
-                    {activeSettingsSection === "data-controls" ? (
-                      <>
-                        <SettingsRow
-                          label="Chat history"
-                          description="Keep recent conversations available in the sidebar."
-                          trailing={
-                            <Toggle
-                              checked={chatHistoryEnabled}
-                              onClick={() => setChatHistoryEnabled((current) => !current)}
-                            />
-                          }
-                        />
-                        <SettingsRow
-                          label="Export data"
-                          description="Placeholder for downloading your MeGPT data."
-                          trailing={<SettingsValue>Soon</SettingsValue>}
-                        />
-                        <SettingsRow
-                          label="Archive all chats"
-                          description="Placeholder for bulk conversation management."
-                          trailing={<SettingsValue>Soon</SettingsValue>}
-                        />
-                      </>
-                    ) : null}
-
-                    {activeSettingsSection === "security" ? (
-                      <>
-                        <SettingsRow
-                          label="Login method"
-                          trailing={
-                            <SettingsValue>{session ? "Google" : "Guest mode"}</SettingsValue>
-                          }
-                        />
-                        <SettingsRow
-                          label="Two-factor authentication"
-                          description="Reserved for stronger account security controls."
-                          trailing={<SettingsValue>Soon</SettingsValue>}
-                        />
-                        <SettingsRow
-                          label="Active sessions"
-                          description="Manage signed-in devices and browsers."
-                          trailing={<SettingsValue>1 session</SettingsValue>}
-                        />
-                      </>
-                    ) : null}
-
-                    {activeSettingsSection === "parental-controls" ? (
-                      <>
-                        <SettingsRow
-                          label="Family mode"
-                          description="A placeholder for age-sensitive defaults and family controls."
-                          trailing={
-                            <Toggle
-                              checked={familyModeEnabled}
-                              onClick={() => setFamilyModeEnabled((current) => !current)}
-                            />
-                          }
-                        />
-                        <SettingsRow
-                          label="Content guardrails"
-                          description="Use more conservative defaults for open-ended conversations."
-                          trailing={
-                            <Toggle
-                              checked={guardrailsEnabled}
-                              onClick={() => setGuardrailsEnabled((current) => !current)}
-                            />
-                          }
-                        />
-                      </>
-                    ) : null}
-
                     {activeSettingsSection === "account" ? (
                       <>
-                        <SettingsRow label="Plan" trailing={<SettingsValue>{planLabel}</SettingsValue>} />
                         <SettingsRow label="Name" trailing={<SettingsValue>{userLabel}</SettingsValue>} />
                         <SettingsRow
                           label="Email"
@@ -628,8 +412,9 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
                           }
                         />
                         <SettingsRow
-                          label="Resolved theme"
-                          trailing={<SettingsValue>{capitalize(resolvedTheme)}</SettingsValue>}
+                          label="Mode"
+                          description="Guest conversations are temporary. Signing in keeps conversations available in your account."
+                          trailing={<SettingsValue>{accountLabel}</SettingsValue>}
                         />
                         <div className="pt-5">
                           {session ? (
@@ -660,6 +445,50 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
                         </div>
                       </>
                     ) : null}
+
+                    {activeSettingsSection === "appearance" ? (
+                      <>
+                        <SettingsRow
+                          label="Theme"
+                          description="The site and favicon follow this appearance setting."
+                          trailing={
+                            <ThemePreferenceControl
+                              theme={theme}
+                              setTheme={setTheme}
+                            />
+                          }
+                        />
+                        <SettingsRow
+                          label="Current appearance"
+                          trailing={<SettingsValue>{capitalize(resolvedTheme)}</SettingsValue>}
+                        />
+                      </>
+                    ) : null}
+
+                    {activeSettingsSection === "notifications" ? (
+                      <>
+                        <SettingsRow
+                          label="Site notifications"
+                          description="Notify you when a new MeGPT reply arrives while this tab is in the background."
+                          trailing={
+                            <Toggle
+                              checked={notificationsEnabled}
+                              onClick={toggleNotifications}
+                              disabled={notificationStatus === "Blocked"}
+                            />
+                          }
+                        />
+                        <SettingsRow
+                          label="Browser permission"
+                          description={
+                            notificationStatus === "Blocked"
+                              ? "Notifications are blocked in your browser settings for this site."
+                              : undefined
+                          }
+                          trailing={<SettingsValue>{notificationStatus}</SettingsValue>}
+                        />
+                      </>
+                    ) : null}
                   </div>
                 </section>
               </div>
@@ -674,13 +503,11 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
 function MenuButton({
   icon: Icon,
   label,
-  badge,
   trailing,
   onClick,
 }: {
   icon: LucideIcon
   label: string
-  badge?: string
   trailing?: ReactNode
   onClick?: () => void
 }) {
@@ -692,12 +519,7 @@ function MenuButton({
     >
       <Icon className="h-5 w-5 shrink-0 text-foreground" />
       <span className="min-w-0 flex-1">{label}</span>
-      {badge ? (
-        <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] text-muted-foreground">
-          {badge}
-        </span>
-      ) : null}
-      {trailing}
+      {trailing ? <span className="shrink-0">{trailing}</span> : null}
     </button>
   )
 }
@@ -732,7 +554,7 @@ function Divider() {
 function SettingsSectionTitle({ title }: { title: string }) {
   return (
     <div className="border-b border-border pb-5">
-      <h2 className="text-[2rem] font-medium tracking-[-0.03em] text-foreground">
+      <h2 className="text-[2rem] font-medium tracking-tight text-foreground">
         {title}
       </h2>
     </div>
@@ -767,24 +589,26 @@ function SettingsValue({ children }: { children: ReactNode }) {
   return (
     <div className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-sm text-foreground">
       {children}
-      <ChevronDown className="h-4 w-4 text-muted-foreground" />
     </div>
   )
 }
 
 function Toggle({
   checked,
+  disabled,
   onClick,
 }: {
   checked: boolean
+  disabled?: boolean
   onClick: () => void
 }) {
   return (
     <button
       type="button"
       aria-pressed={checked}
+      disabled={disabled}
       className={cn(
-        "relative inline-flex h-8 w-14 items-center rounded-full transition-colors",
+        "relative inline-flex h-8 w-14 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-45",
         checked ? "bg-foreground" : "bg-muted"
       )}
       onClick={onClick}
