@@ -39,6 +39,9 @@ const themeScript = `
 export const metadata: Metadata = {
   title: "MeGPT",
   description: "ChatGPT but a little different",
+  icons: {
+    icon: "/icon.svg",
+  },
   openGraph: {
     title: "MeGPT",
     description: "ChatGPT but a little different",

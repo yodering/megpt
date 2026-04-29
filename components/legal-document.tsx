@@ -1,14 +1,20 @@
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, ExternalLink } from "lucide-react"
+
+type InfoPageKind = "about" | "privacy" | "terms"
 
 type LegalSection = {
   title: string
   paragraphs: string[]
   bullets?: string[]
+  links?: {
+    label: string
+    href: string
+  }[]
 }
 
 interface LegalDocumentProps {
-  kind: "privacy" | "terms"
+  kind: InfoPageKind
   title: string
   summary: string
   intro: string[]
@@ -25,6 +31,12 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, "")
 }
 
+const infoTabs: { kind: InfoPageKind; label: string; href: string }[] = [
+  { kind: "terms", label: "Terms", href: "/terms" },
+  { kind: "privacy", label: "Privacy", href: "/privacy" },
+  { kind: "about", label: "About", href: "/about" },
+]
+
 export function LegalDocument({
   kind,
   title,
@@ -35,11 +47,6 @@ export function LegalDocument({
   effectiveDate,
   sections,
 }: LegalDocumentProps) {
-  const isPrivacy = kind === "privacy"
-  const currentTabLabel = isPrivacy ? "Privacy" : "Terms"
-  const otherTabLabel = isPrivacy ? "Terms" : "Privacy"
-  const otherTabHref = isPrivacy ? "/terms" : "/privacy"
-
   return (
     <main className="momentum-scroll h-dvh overflow-y-auto bg-background text-foreground">
       <header className="border-b border-border/80 bg-background">
@@ -55,18 +62,27 @@ export function LegalDocument({
           </div>
 
           <nav
-            aria-label="Legal pages"
+            aria-label="Information pages"
             className="inline-flex w-full items-center gap-1 rounded-full border border-border/80 bg-card/35 p-1 sm:w-fit"
           >
-            <span className="flex-1 rounded-full px-4 py-2 text-center text-sm font-medium text-foreground sm:flex-none">
-              {currentTabLabel}
-            </span>
-            <Link
-              href={otherTabHref}
-              className="flex-1 rounded-full px-4 py-2 text-center text-sm text-muted-foreground transition-colors hover:bg-background hover:text-foreground sm:flex-none"
-            >
-              {otherTabLabel}
-            </Link>
+            {infoTabs.map((tab) =>
+              tab.kind === kind ? (
+                <span
+                  key={tab.kind}
+                  className="flex-1 rounded-full px-4 py-2 text-center text-sm font-medium text-foreground sm:flex-none"
+                >
+                  {tab.label}
+                </span>
+              ) : (
+                <Link
+                  key={tab.kind}
+                  href={tab.href}
+                  className="flex-1 rounded-full px-4 py-2 text-center text-sm text-muted-foreground transition-colors hover:bg-background hover:text-foreground sm:flex-none"
+                >
+                  {tab.label}
+                </Link>
+              )
+            )}
           </nav>
         </div>
       </header>
@@ -122,6 +138,22 @@ export function LegalDocument({
                       </li>
                     ))}
                   </ul>
+                ) : null}
+                {section.links?.length ? (
+                  <div className="mt-7 flex flex-wrap gap-3">
+                    {section.links.map((link) => (
+                      <a
+                        key={link.href}
+                        href={link.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-full border border-border/80 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-card"
+                      >
+                        {link.label}
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    ))}
+                  </div>
                 ) : null}
               </section>
             )
