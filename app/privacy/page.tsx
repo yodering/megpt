@@ -33,7 +33,7 @@ export default function PrivacyPage() {
           title: "How We Use Information",
           paragraphs: [
             "MeGPT uses information to run the site, connect messages to the correct user or guest session, show conversation history, route messages to the operator workflow, and deliver replies back to the chat interface.",
-            "Information may also be used to prevent abuse, enforce queue limits, troubleshoot bugs, maintain database records, and understand whether the site is working reliably.",
+            "Information may also be used to prevent abuse, enforce conversation limits, troubleshoot bugs, maintain database records, and understand whether the site is working reliably.",
           ],
         },
         {
@@ -47,7 +47,7 @@ export default function PrivacyPage() {
           title: "How Long We Keep Information",
           paragraphs: [
             "Guest conversations are meant to be temporary. In this project, guest chats are normally deleted after about 30 minutes of inactivity unless the deployment uses a different retention setting.",
-            "Signed-in account conversations may be kept longer so they remain visible in the interface and operator workflow. Some logs, queue records, and related metadata may remain longer when needed for reliability, troubleshooting, abuse prevention, or legal compliance.",
+            "Signed-in account conversations may be kept longer so they remain visible in the interface and operator workflow. Some logs and related metadata may remain longer when needed for reliability, troubleshooting, abuse prevention, or legal compliance.",
             "If guest messages include uploaded images, those images are deleted when the related guest conversation is cleaned up.",
           ],
         },

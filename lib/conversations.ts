@@ -33,15 +33,10 @@ export type ConversationRecord = {
   lastMessageAt: string
 }
 
-export type ConversationStatus = "open" | "queued" | "awaiting_admin" | "awaiting_user"
+export type ConversationStatus = "open" | "awaiting_admin" | "awaiting_user"
 
 export const ACTIVE_OPERATOR_STATUS: ConversationStatus = "awaiting_admin"
-export const QUEUED_OPERATOR_STATUS: ConversationStatus = "queued"
 export const WAITING_ON_USER_STATUS: ConversationStatus = "awaiting_user"
-export const PENDING_OPERATOR_STATUSES: ConversationStatus[] = [
-  ACTIVE_OPERATOR_STATUS,
-  QUEUED_OPERATOR_STATUS,
-]
 
 export async function getOrCreateConversationForUser(
   userEmail: string,
@@ -340,23 +335,6 @@ export async function listConversationIdsForGuestUsersLastUpdatedBefore(updatedB
   return result.rows.map((row) => row.id)
 }
 
-export async function releasePendingConversationsLastUpdatedBefore(updatedBefore: Date) {
-  await ensureAppSchema()
-  const pool = getDbPool()
-  const result = await pool.query<{ id: number }>(
-    `UPDATE conversations
-     SET
-       status = 'open',
-       "updatedAt" = NOW()
-     WHERE status = ANY($1::text[])
-       AND "lastMessageAt" < $2
-     RETURNING id`,
-    [PENDING_OPERATOR_STATUSES, updatedBefore]
-  )
-
-  return result.rows.map((row) => row.id)
-}
-
 export async function listConversationsForUser(userEmail: string) {
   await ensureAppSchema()
   const pool = getDbPool()
@@ -389,89 +367,4 @@ export async function listConversationsForUser(userEmail: string) {
   )
 
   return result.rows
-}
-
-export async function countAwaitingAdminConversations() {
-  await ensureAppSchema()
-  const pool = getDbPool()
-  const result = await pool.query<{ count: string }>(
-    `SELECT COUNT(*)::text AS count
-     FROM conversations
-     WHERE status = $1`,
-    [ACTIVE_OPERATOR_STATUS]
-  )
-
-  return Number(result.rows[0]?.count ?? 0)
-}
-
-export async function countPendingOperatorConversationsForUser(userEmail: string) {
-  await ensureAppSchema()
-  const pool = getDbPool()
-  const result = await pool.query<{ count: string }>(
-    `SELECT COUNT(*)::text AS count
-     FROM conversations
-     WHERE status = ANY($1::text[]) AND "userEmail" = $2`,
-    [PENDING_OPERATOR_STATUSES, userEmail]
-  )
-
-  return Number(result.rows[0]?.count ?? 0)
-}
-
-export async function promoteOldestQueuedConversation(maxActiveConversations: number) {
-  await ensureAppSchema()
-  const pool = getDbPool()
-  const client = await pool.connect()
-
-  try {
-    await client.query("BEGIN")
-    await client.query("SELECT pg_advisory_xact_lock($1)", [345001])
-
-    const activeCountResult = await client.query<{ count: string }>(
-      `SELECT COUNT(*)::text AS count
-       FROM conversations
-       WHERE status = $1`,
-      [ACTIVE_OPERATOR_STATUS]
-    )
-
-    if (Number(activeCountResult.rows[0]?.count ?? 0) >= maxActiveConversations) {
-      await client.query("COMMIT")
-      return null
-    }
-
-    const promoted = await client.query<ConversationRecord>(
-      `WITH next_conversation AS (
-         SELECT id
-         FROM conversations
-         WHERE status = $1
-         ORDER BY "lastMessageAt" ASC, id ASC
-         LIMIT 1
-         FOR UPDATE SKIP LOCKED
-       )
-       UPDATE conversations c
-       SET
-         status = $2,
-         "updatedAt" = NOW()
-       FROM next_conversation
-       WHERE c.id = next_conversation.id
-       RETURNING
-         c.id,
-         c."userEmail",
-         c."userName",
-         c.status,
-         c."isPinned" AS "isPinned",
-         c."pinnedAt" AS "pinnedAt",
-         c."createdAt",
-         c."updatedAt",
-         c."lastMessageAt"`,
-      [QUEUED_OPERATOR_STATUS, ACTIVE_OPERATOR_STATUS]
-    )
-
-    await client.query("COMMIT")
-    return promoted.rows[0] ?? null
-  } catch (error) {
-    await client.query("ROLLBACK").catch(() => undefined)
-    throw error
-  } finally {
-    client.release()
-  }
 }

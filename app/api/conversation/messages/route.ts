@@ -1,18 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import {
   ACTIVE_OPERATOR_STATUS,
-  QUEUED_OPERATOR_STATUS,
-  countAwaitingAdminConversations,
-  countPendingOperatorConversationsForUser,
   createMessage,
   getConversationById,
   getConversationByIdForUser,
   getOrCreateConversationForUser,
 } from "@/lib/conversations"
-import {
-  MAX_ACTIVE_PENDING_CONVERSATIONS,
-  normalizePendingConversationQueue,
-} from "@/lib/conversation-queue"
 import { syncUserMessageToDiscord } from "@/lib/discord-bot"
 import { cleanupExpiredGuestConversations } from "@/lib/guest-conversations"
 import {
@@ -23,10 +16,6 @@ import { MESSAGE_MAX_CHARS } from "@/lib/message-limit"
 import { getRequestIdentity } from "@/lib/request-identity"
 
 export const runtime = "nodejs"
-
-const MAX_PENDING_CONVERSATIONS_PER_USER = Number(
-  process.env.MAX_PENDING_CONVERSATIONS_PER_USER ?? 1
-)
 
 async function parseIncomingMessage(req: NextRequest) {
   const contentType = req.headers.get("content-type") ?? ""
@@ -60,7 +49,6 @@ async function parseIncomingMessage(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  await normalizePendingConversationQueue()
   const identity = await getRequestIdentity(req)
 
   if (!identity) {
@@ -90,40 +78,14 @@ export async function POST(req: NextRequest) {
       : null) ??
     (await getOrCreateConversationForUser(identity.userEmail, identity.userName))
 
-  if (
-    conversation.status === ACTIVE_OPERATOR_STATUS ||
-    conversation.status === QUEUED_OPERATOR_STATUS
-  ) {
+  if (conversation.status === ACTIVE_OPERATOR_STATUS) {
     return NextResponse.json(
       {
-        error:
-          conversation.status === QUEUED_OPERATOR_STATUS
-            ? "This conversation is queued for review already."
-            : "A reply is already pending for this conversation.",
+        error: "A reply is already pending for this conversation.",
       },
       { status: 409 }
     )
   }
-
-  const [pendingForUser, pendingGlobal] = await Promise.all([
-    countPendingOperatorConversationsForUser(identity.userEmail),
-    countAwaitingAdminConversations(),
-  ])
-
-  if (pendingForUser >= MAX_PENDING_CONVERSATIONS_PER_USER) {
-    return NextResponse.json(
-      {
-        error:
-          "You already have a message waiting for a reply. Please wait for that response before starting another request.",
-      },
-      { status: 429 }
-    )
-  }
-
-  const nextStatus =
-    pendingGlobal >= MAX_ACTIVE_PENDING_CONVERSATIONS
-      ? QUEUED_OPERATOR_STATUS
-      : ACTIVE_OPERATOR_STATUS
 
   let uploadedImageUrl: string | null = null
 
@@ -145,7 +107,6 @@ export async function POST(req: NextRequest) {
     message = await createMessage(conversation.id, "user", text, {
       contentType: uploadedImageUrl ? "image" : "text",
       imageUrl: uploadedImageUrl,
-      nextStatus,
     })
   } catch (error) {
     await deleteUploadedImageByUrl(uploadedImageUrl)
@@ -155,9 +116,7 @@ export async function POST(req: NextRequest) {
   const updatedConversation = await getConversationById(conversation.id)
 
   try {
-    if (nextStatus === ACTIVE_OPERATOR_STATUS) {
-      await syncUserMessageToDiscord(updatedConversation ?? conversation, message)
-    }
+    await syncUserMessageToDiscord(updatedConversation ?? conversation, message)
   } catch (error) {
     console.error("Failed to sync user message to Discord", error)
   }

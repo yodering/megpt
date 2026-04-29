@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import {
+  Check,
   Copy,
   RotateCcw,
   ThumbsDown,
@@ -27,6 +28,9 @@ interface ChatMessageProps {
   onImageLoad?: () => void
 }
 
+type FeedbackAction = "speak" | "copy" | "like" | "dislike" | "retry"
+type Rating = "like" | "dislike" | null
+
 export function ChatMessage({
   role,
   content,
@@ -39,6 +43,10 @@ export function ChatMessage({
   onImageLoad,
 }: ChatMessageProps) {
   const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null)
+  const [feedback, setFeedback] = useState<FeedbackAction | null>(null)
+  const [feedbackTick, setFeedbackTick] = useState(0)
+  const [rating, setRating] = useState<Rating>(null)
+  const feedbackTimeoutRef = useRef<number | null>(null)
   const renderedImageUrls =
     imageUrls.length > 0
       ? imageUrls.filter(Boolean)
@@ -59,6 +67,14 @@ export function ChatMessage({
     return () => document.removeEventListener("keydown", handleKeyDown)
   }, [expandedImageUrl])
 
+  useEffect(() => {
+    return () => {
+      if (feedbackTimeoutRef.current !== null) {
+        window.clearTimeout(feedbackTimeoutRef.current)
+      }
+    }
+  }, [])
+
   const handleImageElement = (element: HTMLImageElement | null) => {
     if (element?.complete) {
       window.requestAnimationFrame(() => {
@@ -66,6 +82,53 @@ export function ChatMessage({
       })
     }
   }
+
+  const showFeedback = (nextFeedback: FeedbackAction, duration = 850) => {
+    if (feedbackTimeoutRef.current !== null) {
+      window.clearTimeout(feedbackTimeoutRef.current)
+    }
+
+    setFeedback(nextFeedback)
+    setFeedbackTick((currentTick) => currentTick + 1)
+    feedbackTimeoutRef.current = window.setTimeout(() => {
+      setFeedback((currentFeedback) =>
+        currentFeedback === nextFeedback ? null : currentFeedback
+      )
+      feedbackTimeoutRef.current = null
+    }, duration)
+  }
+
+  const copyMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(content)
+      showFeedback("copy", 1100)
+    } catch {
+      showFeedback("copy", 1100)
+    }
+  }
+
+  const rateMessage = (nextRating: Exclude<Rating, null>) => {
+    setRating((currentRating) =>
+      currentRating === nextRating ? null : nextRating
+    )
+    showFeedback(nextRating)
+  }
+
+  const actionButtonClass = (isActive: boolean) =>
+    cn(
+      "h-7 w-7 rounded-md text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground",
+      isActive && "bg-accent text-foreground"
+    )
+
+  const iconClass = (action: FeedbackAction) =>
+    cn(
+      "h-4 w-4 transition-transform duration-150",
+      feedback === action && "message-action-pop",
+      action === "retry" && feedback === "retry" && "message-action-spin"
+    )
+
+  const iconKey = (action: FeedbackAction) =>
+    `${action}-${feedback === action ? feedbackTick : "idle"}`
 
   return (
     <>
@@ -144,37 +207,59 @@ export function ChatMessage({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground"
+                className={actionButtonClass(feedback === "speak")}
+                onClick={() => showFeedback("speak")}
+                title={feedback === "speak" ? "Playing preview" : "Read aloud"}
+                aria-label="Read aloud"
               >
-                <Volume2 className="h-4 w-4" />
+                <Volume2 key={iconKey("speak")} className={iconClass("speak")} />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground"
+                className={actionButtonClass(feedback === "copy")}
+                onClick={copyMessage}
+                title={feedback === "copy" ? "Copied" : "Copy"}
+                aria-label="Copy message"
               >
-                <Copy className="h-4 w-4" />
+                {feedback === "copy" ? (
+                  <Check key={iconKey("copy")} className={iconClass("copy")} />
+                ) : (
+                  <Copy key={iconKey("copy")} className={iconClass("copy")} />
+                )}
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground"
+                className={actionButtonClass(rating === "like")}
+                onClick={() => rateMessage("like")}
+                title={feedback === "like" ? "Liked" : "Like"}
+                aria-label="Like response"
               >
-                <ThumbsUp className="h-4 w-4" />
+                <ThumbsUp key={iconKey("like")} className={iconClass("like")} />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground"
+                className={actionButtonClass(rating === "dislike")}
+                onClick={() => rateMessage("dislike")}
+                title={feedback === "dislike" ? "Feedback noted" : "Dislike"}
+                aria-label="Dislike response"
               >
-                <ThumbsDown className="h-4 w-4" />
+                <ThumbsDown
+                  key={iconKey("dislike")}
+                  className={iconClass("dislike")}
+                />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground"
+                className={actionButtonClass(feedback === "retry")}
+                onClick={() => showFeedback("retry")}
+                title={feedback === "retry" ? "Trying again" : "Regenerate"}
+                aria-label="Regenerate response"
               >
-                <RotateCcw className="h-4 w-4" />
+                <RotateCcw key={iconKey("retry")} className={iconClass("retry")} />
               </Button>
             </div>
           ) : null}

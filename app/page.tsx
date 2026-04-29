@@ -86,7 +86,7 @@ export default function Home() {
   const identityReady = identityKey !== null
   const activeConversationStatus = conversation?.status ?? null
   const hasPendingConversation = conversations.some(
-    (item) => item.status === "awaiting_admin" || item.status === "queued"
+    (item) => item.status === "awaiting_admin"
   )
   const inputDisabled = !identityReady || isLoading || hasPendingConversation
   const guestHeaders: Record<string, string> | undefined = useMemo(
@@ -131,10 +131,7 @@ export default function Home() {
     setConversation(data.activeConversation)
     setMessages(data.messages.map((message) => toUiMessage(message)))
 
-    if (
-      data.activeConversation?.status !== "awaiting_admin" &&
-      data.activeConversation?.status !== "queued"
-    ) {
+    if (data.activeConversation?.status !== "awaiting_admin") {
       setIsLoading(false)
     }
   })
@@ -227,10 +224,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!identityReady || !conversationId) return
-    if (
-      activeConversationStatus !== "awaiting_admin" &&
-      activeConversationStatus !== "queued"
-    ) {
+    if (activeConversationStatus !== "awaiting_admin") {
       return
     }
 
@@ -365,10 +359,7 @@ export default function Home() {
           prev
             ? {
                 ...prev,
-                status:
-                  typeof data?.error === "string" && data.error.includes("queued")
-                    ? "queued"
-                    : "awaiting_admin",
+                status: "awaiting_admin",
               }
             : prev
         )
@@ -377,10 +368,7 @@ export default function Home() {
             item.id === conversationId
               ? {
                   ...item,
-                  status:
-                    typeof data?.error === "string" && data.error.includes("queued")
-                      ? "queued"
-                      : "awaiting_admin",
+                  status: "awaiting_admin",
                 }
               : item
           )
@@ -616,8 +604,7 @@ export default function Home() {
             resetToken={chatInputResetToken}
             helperText={
               hasPendingConversation
-                ? activeConversationStatus === "awaiting_admin" ||
-                    activeConversationStatus === "queued"
+                ? activeConversationStatus === "awaiting_admin"
                   ? "Your message is being reviewed."
                   : "Another conversation is already waiting for a reply."
                 : composerNotice

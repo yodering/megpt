@@ -27,7 +27,7 @@ export default function TermsPage() {
           title: "How MeGPT Works",
           paragraphs: [
             "MeGPT is a communication tool built around operator-assisted messaging. That means replies may be written, reviewed, or sent by a human, and you should not assume the site is a fully autonomous chatbot.",
-            "The project may use connected tools and infrastructure to queue messages, store conversation history, manage attachments, and route replies back to the site.",
+            "The project may use connected tools and infrastructure to store conversation history, manage attachments, notify the operator, and route replies back to the site.",
           ],
         },
         {
@@ -47,7 +47,7 @@ export default function TermsPage() {
             "Do not attempt unauthorized access, scraping, reverse engineering, or technical interference with the app or its connected systems.",
             "Do not send unlawful, abusive, harassing, hateful, fraudulent, or harmful content.",
             "Do not use the site for malware, phishing, spam, scams, or deceptive activity.",
-            "Do not try to bypass queue limits, moderation choices, or rate limits.",
+            "Do not try to bypass moderation choices, conversation limits, or rate limits.",
           ],
         },
         {
@@ -61,7 +61,7 @@ export default function TermsPage() {
           title: "Project Availability",
           paragraphs: [
             "MeGPT is a school project and is offered on an as-is and as-available basis. Features may change, break, pause, or disappear without notice.",
-            "The operator may set queue limits, conversation limits, file limits, or other usage controls to keep the project usable and safe.",
+            "The operator may set conversation limits, file limits, or other usage controls to keep the project usable and safe.",
           ],
         },
         {

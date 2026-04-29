@@ -203,6 +203,45 @@ html.light .theme-toggle-sun {
   animation-iteration-count: infinite;
 }
 
+@keyframes message-action-pop {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+
+  45% {
+    transform: translateY(-1px) scale(1.08);
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes message-action-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(-180deg);
+  }
+}
+
+.message-action-pop {
+  animation: message-action-pop 220ms ease-out;
+}
+
+.message-action-spin {
+  animation: message-action-spin 360ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message-action-pop,
+  .message-action-spin {
+    animation: none;
+  }
+}
+
 .momentum-scroll {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;

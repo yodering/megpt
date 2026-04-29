@@ -23,9 +23,6 @@ DISCORD_PARENT_CHANNEL_ID=
 DISCORD_NOTIFICATION_CHANNEL_ID=
 DISCORD_NOTIFICATION_USER_ID=
 DISCORD_NOTIFICATION_ROLE_ID=
-MAX_PENDING_CONVERSATIONS=1
-MAX_PENDING_CONVERSATIONS_PER_USER=1
-PENDING_CONVERSATION_TTL_HOURS=72
 NEXT_PUBLIC_UMAMI_SCRIPT_URL=
 NEXT_PUBLIC_UMAMI_WEBSITE_ID=
 NEXT_PUBLIC_UMAMI_DOMAINS=localhost
@@ -51,9 +48,6 @@ DISCORD_PARENT_CHANNEL_ID=
 DISCORD_NOTIFICATION_CHANNEL_ID=
 DISCORD_NOTIFICATION_USER_ID=
 DISCORD_NOTIFICATION_ROLE_ID=
-MAX_PENDING_CONVERSATIONS=1
-MAX_PENDING_CONVERSATIONS_PER_USER=1
-PENDING_CONVERSATION_TTL_HOURS=72
 ```
 
 4. Redeploy the web service. The app will create its own conversation tables on first database use.
@@ -68,12 +62,6 @@ Optional Umami analytics:
 - `NEXT_PUBLIC_UMAMI_HOST_URL`: optional event endpoint override if it differs from the script origin
 
 The app only loads Umami in `production`, sets `data-do-not-track="true"`, and excludes URL search params by default.
-
-Optional reply-capacity controls:
-
-- `MAX_PENDING_CONVERSATIONS`: total conversations allowed in active `awaiting_admin` before new inbound messages are placed into `queued`. The code now defaults to `1`, which makes the inbox operate as one active conversation at a time unless you raise it.
-- `MAX_PENDING_CONVERSATIONS_PER_USER`: max conversations one user can have in `awaiting_admin` or `queued`
-- `PENDING_CONVERSATION_TTL_HOURS`: how long an unanswered `awaiting_admin` or `queued` conversation can sit before it is released back to `open`. The default is `72`.
 
 ## Discord operator inbox
 
@@ -90,12 +78,7 @@ The app supports Discord as the operator surface while keeping Postgres as the s
 Behavior:
 
 - User messages from the app are saved to Postgres and mirrored into a Discord thread.
-- When the active operator inbox is full, new user messages are accepted into a `queued` state instead of being rejected.
-- Queued conversations are promoted into `awaiting_admin` in oldest-first order as active slots open up.
-- Pending conversations that sit too long are automatically released back to `open` so stale items do not block the queue forever.
-- Active conversations can include an optional user or role mention, which is useful if you want phone push notifications for the current item at the front of the queue.
-- Queued conversations stay out of Discord until they reach the front of the line, so every Discord arrival should mean there is something actionable for you now.
-- When a queued conversation reaches the front of the line, the bot creates or reopens the Discord thread and sends the message with the normal notification path.
+- Mirrored user messages can include an optional user or role mention, which is useful if you want phone push notifications.
 - Replies written in that Discord thread are saved back into Postgres and streamed to the user UI.
 - Image attachments in Discord replies are saved back into Postgres and displayed inline in the user UI.
 - The app will auto-create the `discord_threads` table on first database use.
