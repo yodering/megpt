@@ -26,6 +26,7 @@ import {
 } from "lucide-react"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
+import { appPath } from "@/lib/paths"
 import { cn } from "@/lib/utils"
 
 interface ProfileMenuProps {
@@ -103,12 +104,12 @@ export function ProfileMenu({ variant = "header" }: ProfileMenuProps) {
 
   function startGoogleSignIn() {
     blurActiveElement()
-    void signIn("google", { callbackUrl: "/" })
+    void signIn("google", { callbackUrl: appPath("/") })
   }
 
   function startSignOut() {
     blurActiveElement()
-    void signOut({ callbackUrl: "/" })
+    void signOut({ callbackUrl: appPath("/") })
   }
 
   async function toggleNotifications() {

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { Providers } from "@/components/providers"
+import { APP_BASE_PATH, appPath } from "@/lib/paths"
 import "./globals.css"
 
 const geistSans = Geist({
@@ -53,15 +54,21 @@ const themeScript = `
 `
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://yoder.ing"
+  ),
   title: "MeGPT",
   description: "ChatGPT but a little different",
   icons: {
-    icon: "/icon.svg",
+    icon: appPath("/icon.svg"),
+  },
+  alternates: {
+    canonical: APP_BASE_PATH || "/",
   },
   openGraph: {
     title: "MeGPT",
     description: "ChatGPT but a little different",
-    url: "https://megpt.boo",
+    url: APP_BASE_PATH || "/",
     siteName: "MeGPT",
   },
   twitter: {

@@ -9,6 +9,7 @@ import { ChatHeader } from "@/components/chat-header"
 import { ChatInput, type ComposerPayload } from "@/components/chat-input"
 import { ChatMessages } from "@/components/chat-messages"
 import { MESSAGE_MAX_CHARS } from "@/lib/message-limit"
+import { appPath } from "@/lib/paths"
 
 const HeroPrompt = dynamic(
   () => import("@/components/hero-prompt").then((module) => module.HeroPrompt),
@@ -251,7 +252,7 @@ export default function Home() {
 
     async function loadConversation(activeId?: number | null) {
       const search = activeId ? `?conversationId=${activeId}` : ""
-      const response = await fetch(`/api/conversation${search}`, {
+      const response = await fetch(appPath(`/api/conversation${search}`), {
         cache: "no-store",
         headers,
       })
@@ -273,7 +274,7 @@ export default function Home() {
     let cancelled = false
 
     const refreshConversation = async () => {
-      const response = await fetch(`/api/conversation?conversationId=${conversationId}`, {
+      const response = await fetch(appPath(`/api/conversation?conversationId=${conversationId}`), {
         cache: "no-store",
         headers: guestHeaders,
       }).catch(() => null)
@@ -355,7 +356,7 @@ export default function Home() {
 
     try {
       response = await fetch(
-        "/api/conversation/messages",
+        appPath("/api/conversation/messages"),
         image
           ? {
               method: "POST",
@@ -479,7 +480,7 @@ export default function Home() {
     if (!identityReady) return
 
     const requestId = beginConversationRequest()
-    const response = await fetch("/api/conversation", {
+    const response = await fetch(appPath("/api/conversation"), {
       method: "POST",
       headers: jsonHeaders,
     })
@@ -504,7 +505,7 @@ export default function Home() {
 
     const requestId = beginConversationRequest()
 
-    const response = await fetch(`/api/conversation?conversationId=${nextConversationId}`, {
+    const response = await fetch(appPath(`/api/conversation?conversationId=${nextConversationId}`), {
       cache: "no-store",
       headers: guestHeaders,
     })
@@ -527,7 +528,7 @@ export default function Home() {
 
     const requestId = beginConversationRequest()
 
-    const response = await fetch(`/api/conversation/${conversationToDeleteId}`, {
+    const response = await fetch(appPath(`/api/conversation/${conversationToDeleteId}`), {
       method: "DELETE",
       headers: guestHeaders,
     })
@@ -564,7 +565,7 @@ export default function Home() {
     if (!targetConversation) return
 
     const requestId = beginConversationRequest()
-    const response = await fetch(`/api/conversation/${conversationToPinId}`, {
+    const response = await fetch(appPath(`/api/conversation/${conversationToPinId}`), {
       method: "PATCH",
       headers: jsonHeaders,
       body: JSON.stringify({ pinned: !targetConversation.isPinned }),
