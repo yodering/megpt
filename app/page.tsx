@@ -697,6 +697,13 @@ function FooterDisclosure() {
         className="underline underline-offset-2 hover:text-foreground"
       >
         Privacy Policy
+      </Link>{" "}
+      and{" "}
+      <Link
+        href="/about"
+        className="underline underline-offset-2 hover:text-foreground"
+      >
+        About MeGPT
       </Link>
     </p>
   )
