@@ -4,6 +4,9 @@ import { Providers } from "@/components/providers"
 import { APP_BASE_PATH, appPath } from "@/lib/paths"
 import "./globals.css"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 const geistSans = Geist({
   subsets: ["latin"],
   variable: "--font-geist-sans",
