@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 const rotatingPrompts = [
   "Ready when you are.",
@@ -20,9 +20,15 @@ const rotatingPrompts = [
 ]
 
 export function HeroPrompt() {
-  const [prompt] = useState(
-    () => rotatingPrompts[Math.floor(Math.random() * rotatingPrompts.length)]
-  )
+  const [prompt, setPrompt] = useState(rotatingPrompts[0])
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setPrompt(rotatingPrompts[Math.floor(Math.random() * rotatingPrompts.length)])
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [])
 
   return (
     <div className="flex h-full flex-col items-center justify-center">

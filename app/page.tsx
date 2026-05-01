@@ -1,23 +1,15 @@
 "use client"
 
-import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react"
+import { HeroPrompt } from "@/components/hero-prompt"
 import { Sidebar } from "@/components/sidebar"
 import { ChatHeader } from "@/components/chat-header"
 import { ChatInput, type ComposerPayload } from "@/components/chat-input"
 import { ChatMessages } from "@/components/chat-messages"
 import { MESSAGE_MAX_CHARS } from "@/lib/message-limit"
 import { appPath } from "@/lib/paths"
-
-const HeroPrompt = dynamic(
-  () => import("@/components/hero-prompt").then((module) => module.HeroPrompt),
-  {
-    ssr: false,
-    loading: () => <div className="mb-6 min-h-16" />,
-  }
-)
 
 const NOTIFICATIONS_STORAGE_KEY = "megpt-notifications-enabled"
 
