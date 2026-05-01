@@ -60,7 +60,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://yoder.ing"
   ),
-  title: "MeGPT",
+  title: "megpt",
   description: "ChatGPT but a little different",
   icons: {
     icon: appPath("/icon.svg"),
