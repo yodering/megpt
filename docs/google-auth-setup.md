@@ -1,8 +1,8 @@
-# Google Auth Setup For `megpt.boo`
+# Google Auth Setup For `yoder.ing/megpt`
 
 This project uses NextAuth with Google Sign-In.
 
-## Railway env vars
+## Railway Env Vars
 
 Set these on the Railway web service:
 
@@ -10,13 +10,13 @@ Set these on the Railway web service:
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 NEXTAUTH_SECRET=...
-NEXTAUTH_URL=https://megpt.boo
+NEXTAUTH_URL=https://yoder.ing/megpt
+NEXT_PUBLIC_SITE_URL=https://yoder.ing
+NEXT_PUBLIC_BASE_PATH=/megpt
 DATABASE_URL=...
 ```
 
-If you still have an old Railway domain configured anywhere, do not use it as `NEXTAUTH_URL` after switching to `megpt.boo`.
-
-## Google Cloud setup
+## Google Cloud Setup
 
 In Google Cloud Console:
 
@@ -24,21 +24,21 @@ In Google Cloud Console:
 2. Configure the consent screen.
 3. Create or edit an OAuth client of type `Web application`.
 
-## Exact OAuth values to use
+## Exact OAuth Values To Use
 
 For the OAuth client:
 
 - Authorized JavaScript origins:
-  - `https://megpt.boo`
+  - `https://yoder.ing`
   - `http://localhost:3000`
 
 - Authorized redirect URIs:
-  - `https://megpt.boo/api/auth/callback/google`
+  - `https://yoder.ing/megpt/api/auth/callback/google`
   - `http://localhost:3000/api/auth/callback/google`
 
-The redirect URI must match exactly, including scheme and path, per Google’s OAuth docs: https://developers.google.com/identity/protocols/oauth2/web-server
+The redirect URI must match exactly, including scheme, base path, and callback path.
 
-## Consent screen
+## Consent Screen
 
 For the consent screen:
 
@@ -47,32 +47,31 @@ For the consent screen:
 - Audience: `External`
 - Developer contact email: your email
 
-If the app is still in testing mode, add your Google account under `Test users`, per Google’s consent screen docs: https://developers.google.com/workspace/guides/configure-oauth-consent
+If the app is still in testing mode, add your Google account under `Test users`.
 
-## Authorized domains
+## Authorized Domains
 
-Add `megpt.boo` as an authorized domain in the consent screen settings.
+Add `yoder.ing` as an authorized domain in the consent screen settings.
 
-If Google asks for verification later, Google says the domain used by your home page, privacy policy, terms page, and redirect URIs must be verified in Search Console: https://developers.google.com/identity/protocols/oauth2/production-readiness/brand-verification
+## Public URLs For Google Review
 
-## Public URLs for Google review
+This app has public pages you can use in the consent screen:
 
-This app now has public pages you can use in the consent screen:
+- Home page: `https://yoder.ing/megpt`
+- Privacy policy: `https://yoder.ing/megpt/privacy`
+- Terms of service: `https://yoder.ing/megpt/terms`
 
-- Home page: `https://megpt.boo`
-- Privacy policy: `https://megpt.boo/privacy`
-- Terms of service: `https://megpt.boo/terms`
-
-## Common failure points
+## Common Failure Points
 
 If login fails, check these first:
 
-1. `NEXTAUTH_URL` must be exactly `https://megpt.boo`
-2. Google redirect URI must be exactly `https://megpt.boo/api/auth/callback/google`
-3. If the consent screen is in testing mode, your Google email must be listed as a test user
-4. `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in Railway must belong to the same OAuth client
-5. Railway must be redeployed after env var changes
+1. `NEXTAUTH_URL` must be exactly `https://yoder.ing/megpt`.
+2. Google redirect URI must be exactly `https://yoder.ing/megpt/api/auth/callback/google`.
+3. `NEXT_PUBLIC_BASE_PATH` must be exactly `/megpt`.
+4. If the consent screen is in testing mode, your Google email must be listed as a test user.
+5. `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in Railway must belong to the same OAuth client.
+6. Railway must be redeployed after env var changes.
 
-## What the current code expects
+## What The Current Code Expects
 
 Google login can work for any allowed Google account, and Railway Postgres is used for conversations and messages, not for NextAuth account/session tables.

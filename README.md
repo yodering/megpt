@@ -58,7 +58,7 @@ Optional Umami analytics:
 
 - `NEXT_PUBLIC_UMAMI_SCRIPT_URL`: tracker script URL, for example `https://stats.example.com/script.js`
 - `NEXT_PUBLIC_UMAMI_WEBSITE_ID`: website ID from Umami
-- `NEXT_PUBLIC_UMAMI_DOMAINS`: comma-separated hostnames to allow, for example `megpt.boo,www.megpt.boo`
+- `NEXT_PUBLIC_UMAMI_DOMAINS`: comma-separated hostnames to allow, for example `yoder.ing`
 - `NEXT_PUBLIC_UMAMI_HOST_URL`: optional event endpoint override if it differs from the script origin
 
 The app only loads Umami in `production`, sets `data-do-not-track="true"`, and excludes URL search params by default.
