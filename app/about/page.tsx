@@ -79,7 +79,7 @@ export default function AboutPage() {
       <header className="border-b border-border/80 bg-background">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-5">
           <Link
-            href={appPath("/")}
+            href="/"
             className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -101,7 +101,7 @@ export default function AboutPage() {
               ) : (
                 <Link
                   key={tab.href}
-                  href={appPath(tab.href)}
+                  href={tab.href}
                   className="flex-1 rounded-full px-4 py-2 text-center text-sm text-muted-foreground transition-colors hover:bg-background hover:text-foreground sm:flex-none"
                 >
                   {tab.label}
@@ -417,7 +417,7 @@ function ProjectLink({
 
   if (internal) {
     return (
-      <Link href={appPath(href)} className={className}>
+      <Link href={href} className={className}>
         {label}
       </Link>
     )
