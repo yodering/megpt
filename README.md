@@ -1,94 +1,202 @@
-This is a Next.js app deployed on Railway with Google auth via NextAuth.
+# MeGPT
 
-## Local development
+MeGPT is a basic AI chatbot UI clone built for David Yoder's Radical Software work at Davidson College. It borrows the familiar shape of a ChatGPT-style interface, but the response does not come from a model. It comes from David.
 
-Install dependencies and run the app:
+The project works as a small commentary on AI interfaces, automation, authorship, and trust. A user types into something that looks like a chatbot, waits in the same way they might wait for an assistant, and receives a reply routed through a real person using Discord as the backend inbox.
+
+The app supports guest conversations, Google sign-in, persistent chat history, image uploads, and Discord thread mirroring so each conversation can be handled personally while Postgres remains the source of truth.
+
+## What It Does
+
+- ChatGPT-like UI built with Next.js App Router, React, and Tailwind CSS.
+- Guest mode with temporary session IDs, plus optional Google auth through NextAuth.
+- Postgres-backed conversations, messages, Discord thread mappings, pins, statuses, and uploaded images.
+- One pending user request per conversation, so the app behaves less like instant automation and more like a mediated human reply.
+- Discord inbox: user messages create or reuse a Discord thread, and David's replies in that thread are saved back into the app.
+- Image uploads from the web app and image replies from Discord.
+- Optional Umami analytics.
+
+## Tech Stack
+
+- Runtime/package manager: Bun
+- Framework: Next.js 16
+- UI: React 19, Tailwind CSS 4, lucide-react, motion
+- Auth: NextAuth with Google provider and JWT sessions
+- Database: PostgreSQL through `pg`
+- Reply surface: Discord bot through `discord.js`
+- Image processing: `sharp`
+
+## Repository Layout
+
+```text
+app/                  Next.js routes, pages, API handlers, metadata
+components/           Chat UI, sidebar, auth/profile controls, shared UI
+lib/                  Database, auth, conversations, Discord, uploads, helpers
+docs/                 Setup notes and product decisions
+public/               Static icons and public assets
+```
+
+## Local Development
+
+Use Bun for all package commands.
 
 ```bash
 bun install
 bun dev
 ```
 
-Create a `.env.local` with at least:
+The dev server runs at:
+
+```text
+http://localhost:3000
+```
+
+Other useful commands:
 
 ```bash
+bun run build
+bun run start
+bun run lint
+```
+
+## Environment Variables
+
+Create `.env.local` in the repo root.
+
+```bash
+DATABASE_URL=
+
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 NEXTAUTH_SECRET=
 NEXTAUTH_URL=http://localhost:3000
-DATABASE_URL=
+
 DISCORD_BOT_TOKEN=
 DISCORD_GUILD_ID=
 DISCORD_PARENT_CHANNEL_ID=
 DISCORD_NOTIFICATION_CHANNEL_ID=
 DISCORD_NOTIFICATION_USER_ID=
 DISCORD_NOTIFICATION_ROLE_ID=
+
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_BASE_PATH=
+NEXT_PUBLIC_MESSAGE_MAX_CHARS=2000
+MAX_IMAGE_UPLOAD_BYTES=10485760
+GUEST_CONVERSATION_TTL_MINUTES=30
+
 NEXT_PUBLIC_UMAMI_SCRIPT_URL=
 NEXT_PUBLIC_UMAMI_WEBSITE_ID=
 NEXT_PUBLIC_UMAMI_DOMAINS=localhost
+NEXT_PUBLIC_UMAMI_HOST_URL=
 ```
 
-Google auth uses JWT sessions. `DATABASE_URL` is used for app data such as conversations and messages.
+### Required For A Minimal Local Run
 
-## Railway Postgres setup
+- `DATABASE_URL`
+- `NEXTAUTH_SECRET`
+- `NEXTAUTH_URL`
 
-1. In Railway, create a `PostgreSQL` service.
-2. In your web service, add a variable reference so the app receives the Postgres connection string as `DATABASE_URL`.
-3. Set these variables on the web service:
+Google login requires `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, but guest chat can work without Google OAuth as long as the database is configured.
 
-```bash
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-NEXTAUTH_SECRET=
-NEXTAUTH_URL=https://your-app.up.railway.app
-DATABASE_URL=
-DISCORD_BOT_TOKEN=
-DISCORD_GUILD_ID=
-DISCORD_PARENT_CHANNEL_ID=
-DISCORD_NOTIFICATION_CHANNEL_ID=
-DISCORD_NOTIFICATION_USER_ID=
-DISCORD_NOTIFICATION_ROLE_ID=
+Discord mirroring is enabled only when all of these are set:
+
+- `DISCORD_BOT_TOKEN`
+- `DISCORD_GUILD_ID`
+- `DISCORD_PARENT_CHANNEL_ID`
+
+The notification channel, user mention, and role mention variables are optional.
+
+## Database
+
+The app expects a PostgreSQL connection string in `DATABASE_URL`.
+
+Conversation tables are created automatically on first database use by `lib/db.ts`, including:
+
+- `conversations`
+- `messages`
+- `discord_threads`
+- `uploaded_images`
+
+## Google Auth
+
+This project uses NextAuth with the Google provider.
+
+For local development, add this redirect URI to the Google OAuth client:
+
+```text
+http://localhost:3000/api/auth/callback/google
 ```
 
-4. Redeploy the web service. The app will create its own conversation tables on first database use.
+For production with a base path, the callback must include the base path. For the current deployed shape:
 
-Railway usually injects a usable connection string after the services are linked. This project expects the standard `DATABASE_URL`.
+```text
+https://yoder.ing/megpt/api/auth/callback/google
+```
 
-Optional Umami analytics:
+More detailed setup notes live in `docs/google-auth-setup.md`.
 
-- `NEXT_PUBLIC_UMAMI_SCRIPT_URL`: tracker script URL, for example `https://stats.example.com/script.js`
-- `NEXT_PUBLIC_UMAMI_WEBSITE_ID`: website ID from Umami
-- `NEXT_PUBLIC_UMAMI_DOMAINS`: comma-separated hostnames to allow, for example `yoder.ing`
-- `NEXT_PUBLIC_UMAMI_HOST_URL`: optional event endpoint override if it differs from the script origin
+## Discord Reply Inbox
 
-The app only loads Umami in `production`, sets `data-do-not-track="true"`, and excludes URL search params by default.
+Discord is the reply surface for the human side of the project.
 
-## Discord operator inbox
-
-The app supports Discord as the operator surface while keeping Postgres as the source of truth.
-
-- Create a bot in the Discord Developer Portal.
-- Enable the `MESSAGE CONTENT INTENT` for the bot.
-- Invite the bot to your server with permission to view channels, send messages, create public threads, send messages in threads, and read message history.
-- Set `DISCORD_PARENT_CHANNEL_ID` to a normal text channel where the app should create one thread per conversation.
-- Optional: set `DISCORD_NOTIFICATION_CHANNEL_ID` to a separate text channel for extra alerts. If unset, no separate alert is sent.
-- Optional: set `DISCORD_NOTIFICATION_USER_ID` to ping one user on each mirrored user message in Discord.
-- Optional: set `DISCORD_NOTIFICATION_ROLE_ID` to ping a role on each mirrored user message in Discord.
+1. Create a Discord application and bot.
+2. Enable the Message Content Intent.
+3. Invite the bot to the server with permissions to view channels, send messages, create public threads, send messages in threads, attach files, and read message history.
+4. Set `DISCORD_PARENT_CHANNEL_ID` to a normal text channel where the bot can create one thread per MeGPT conversation.
+5. Optionally set `DISCORD_NOTIFICATION_CHANNEL_ID`, `DISCORD_NOTIFICATION_USER_ID`, or `DISCORD_NOTIFICATION_ROLE_ID` for extra alerts.
 
 Behavior:
 
-- User messages from the app are saved to Postgres and mirrored into a Discord thread.
-- Mirrored user messages can include an optional user or role mention, which is useful if you want phone push notifications.
-- Replies written in that Discord thread are saved back into Postgres and streamed to the user UI.
-- Image attachments in Discord replies are saved back into Postgres and displayed inline in the user UI.
-- The app will auto-create the `discord_threads` table on first database use.
+- A user message is saved to Postgres.
+- The app creates or reuses a Discord thread for that conversation.
+- The user message is mirrored into the thread.
+- A Discord reply in that thread is saved as David's response.
+- The web UI polls for updates and shows the reply to the original user.
+- Uploaded images are stored in Postgres and served through `/api/images/:id`.
 
-## Supabase cleanup
+## Deployment Notes
 
-This repo no longer uses Supabase. Remove these old variables from Railway and from your local `.env.local` if you no longer need them:
+The app is designed for Railway:
+
+1. Create a Railway web service for the Next.js app.
+2. Create or attach a Railway PostgreSQL service.
+3. Expose the Postgres connection string to the web service as `DATABASE_URL`.
+4. Set production auth variables:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-SUPABASE_SECRET_KEY
+NEXTAUTH_URL=https://your-domain.example/optional-base-path
+NEXTAUTH_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+NEXT_PUBLIC_SITE_URL=https://your-domain.example
+NEXT_PUBLIC_BASE_PATH=/optional-base-path
 ```
+
+5. Set Discord variables if reply mirroring should run in production.
+6. Redeploy after changing environment variables.
+
+When deploying at the site root, leave `NEXT_PUBLIC_BASE_PATH` empty. When deploying under `/megpt`, set:
+
+```bash
+NEXT_PUBLIC_BASE_PATH=/megpt
+NEXTAUTH_URL=https://yoder.ing/megpt
+NEXT_PUBLIC_SITE_URL=https://yoder.ing
+```
+
+## Optional Analytics
+
+Umami loads only in production when both `NEXT_PUBLIC_UMAMI_SCRIPT_URL` and `NEXT_PUBLIC_UMAMI_WEBSITE_ID` are set.
+
+```bash
+NEXT_PUBLIC_UMAMI_SCRIPT_URL=https://stats.example.com/script.js
+NEXT_PUBLIC_UMAMI_WEBSITE_ID=
+NEXT_PUBLIC_UMAMI_DOMAINS=yoder.ing
+NEXT_PUBLIC_UMAMI_HOST_URL=
+```
+
+## Notes For Contributors
+
+- Use Bun. Do not use npm commands in this repo.
+- Keep Postgres as the source of truth for conversation state.
+- Be careful with guest conversations: they are intentionally temporary and cleaned up according to `GUEST_CONVERSATION_TTL_MINUTES`.
+- Do not put sensitive user data into test messages; replies are read and written by a real person.
