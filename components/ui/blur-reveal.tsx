@@ -1,16 +1,18 @@
 "use client"
 
-import { motion, type Variants } from "motion/react"
+import type { ReactNode } from "react"
+import { motion, useReducedMotion, type Variants } from "motion/react"
 
 interface BlurRevealProps {
-  children: React.ReactNode
+  children: ReactNode
   delay?: number
   duration?: number
   className?: string
+  trigger?: boolean
 }
 
 const variants: Variants = {
-  hidden: { opacity: 0, filter: "blur(10px)", y: 5 },
+  hidden: { opacity: 0, filter: "blur(10px)", y: 6 },
   visible: { opacity: 1, filter: "blur(0px)", y: 0 },
 }
 
@@ -19,10 +21,14 @@ export function BlurReveal({
   delay = 0,
   duration = 0.6,
   className,
+  trigger = true,
 }: BlurRevealProps) {
+  const shouldReduceMotion = useReducedMotion()
+  const shouldAnimate = trigger && !shouldReduceMotion
+
   return (
     <motion.div
-      initial="hidden"
+      initial={shouldAnimate ? "hidden" : false}
       animate="visible"
       variants={variants}
       transition={{ duration, delay, ease: "easeOut" }}
@@ -46,6 +52,7 @@ export function BlurRevealWord({
   staggerDelay = 0.04,
   className,
 }: BlurRevealWordProps) {
+  const shouldReduceMotion = useReducedMotion()
   const segments = text.split(/(\s+)/).filter(Boolean)
 
   return (
@@ -58,7 +65,7 @@ export function BlurRevealWord({
         ) : (
           <motion.span
             key={`word-${i}`}
-            initial="hidden"
+            initial={shouldReduceMotion ? false : "hidden"}
             animate="visible"
             variants={variants}
             transition={{

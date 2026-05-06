@@ -164,7 +164,20 @@ export default function Home() {
     setConversationId(data.activeConversation?.id ?? null)
     setConversation(data.activeConversation)
     notifyNewAssistantReply(nextMessages, Boolean(options?.notify))
-    setMessages(nextMessages)
+    setMessages((previousMessages) => {
+      const previousMessageKeys = new Set(
+        previousMessages.map((message) => message.key)
+      )
+      const shouldRevealNewReplies = Boolean(options?.notify)
+
+      return nextMessages.map((message) => ({
+        ...message,
+        isNew:
+          shouldRevealNewReplies &&
+          message.role === "assistant" &&
+          !previousMessageKeys.has(message.key),
+      }))
+    })
 
     if (data.activeConversation?.status !== "awaiting_admin") {
       setIsLoading(false)

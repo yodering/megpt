@@ -12,7 +12,7 @@ import {
   X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { BlurRevealWord } from "@/components/ui/blur-reveal"
+import { BlurReveal, BlurRevealWord } from "@/components/ui/blur-reveal"
 import { ShimmerText } from "@/components/ui/shimmer-text"
 import { cn } from "@/lib/utils"
 
@@ -132,7 +132,9 @@ export function ChatMessage({
 
   return (
     <>
-      <div
+      <BlurReveal
+        trigger={isNew}
+        duration={0.55}
         className={cn(
           "group flex gap-3 py-3 sm:gap-4 sm:py-4",
           role === "user" ? "justify-end" : "justify-start"
@@ -264,7 +266,7 @@ export function ChatMessage({
             </div>
           ) : null}
         </div>
-      </div>
+      </BlurReveal>
 
       {typeof document !== "undefined" && expandedImageUrl
         ? createPortal(
