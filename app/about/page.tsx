@@ -7,7 +7,7 @@ export default function AboutPage() {
       title="About MeGPT"
       summary="MeGPT is a student project by David Yoder, built as a human-assisted chat site for Radical Software at Davidson College."
       intro={[
-        "Hi, I'm David Yoder. I'm a student at Davidson College in the class of 2026.",
+        "Hi, I'm David Yoder, a student at Davidson College in the class of 2026.",
         "I made this site for Radical Software, a class about software as a creative, social, and critical medium.",
         "I wanted to see what it'd be like to be on the other end of ChatGPT. Receiving and replying to messages constantly, appeasing the user, etc.",
       ]}
