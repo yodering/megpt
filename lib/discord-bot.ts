@@ -197,6 +197,7 @@ function isSupportedDiscordImageAttachment(attachment: {
   contentType?: string | null
   name?: string | null
   url: string
+  proxyURL?: string | null
 }) {
   return Boolean(
     resolveSupportedImageMimeType({
@@ -205,6 +206,36 @@ function isSupportedDiscordImageAttachment(attachment: {
       imageUrl: attachment.url,
     })
   )
+}
+
+function getDiscordAttachmentImageUrls(attachment: {
+  url: string
+  proxyURL?: string | null
+}) {
+  return [...new Set([attachment.url, attachment.proxyURL].filter(Boolean))] as string[]
+}
+
+async function saveDiscordAttachmentImage(attachment: {
+  contentType?: string | null
+  name?: string | null
+  url: string
+  proxyURL?: string | null
+}) {
+  let lastError: unknown = null
+
+  for (const imageUrl of getDiscordAttachmentImageUrls(attachment)) {
+    try {
+      return await saveRemoteImage(
+        imageUrl,
+        attachment.contentType ?? undefined,
+        attachment.name
+      )
+    } catch (error) {
+      lastError = error
+    }
+  }
+
+  throw lastError ?? new Error("Failed to store Discord image attachment.")
 }
 
 function formatNewThreadNotification(
@@ -356,23 +387,20 @@ async function bindDiscordHandlers(client: Client) {
     }
 
     for (const attachment of imageAttachments) {
-      let imageUrl = attachment.url
-
       try {
-        const savedImage = await saveRemoteImage(
-          attachment.url,
-          attachment.contentType ?? undefined,
-          attachment.name
-        )
-        imageUrl = savedImage.publicUrl
+        const savedImage = await saveDiscordAttachmentImage(attachment)
+        await createMessage(conversation.id, "operator", "", {
+          contentType: "image",
+          imageUrl: savedImage.publicUrl,
+        })
       } catch (error) {
         console.error("Failed to store Discord image attachment locally", error)
+        await createMessage(
+          conversation.id,
+          "operator",
+          "An image was sent, but MeGPT could not save it. Please ask me to resend it."
+        )
       }
-
-      await createMessage(conversation.id, "operator", "", {
-        contentType: "image",
-        imageUrl,
-      })
     }
 
     const updatedConversation = await getConversationById(conversation.id)

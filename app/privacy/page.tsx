@@ -4,20 +4,20 @@ export default function PrivacyPage() {
   return (
     <LegalDocument
       kind="privacy"
-      title="Privacy Policy"
-      summary="This page explains what MeGPT collects, why it collects it, who may see it, and how long it is usually kept. It is written to match what the project actually does today, without hiding the important parts behind heavy legal wording."
+      title="Privacy Policy (AI Generated)"
+      summary="MeGPT is a school project with a human-assisted chat workflow. This page explains what the project collects, why it collects it, who may see it, and how long it is usually kept."
       intro={[
-        "MeGPT is a school project and a human-assisted chat tool. If you send a message through the site, a human operator may be able to read and reply to it.",
-        "This Privacy Policy applies to the MeGPT website, guest sessions, Google sign-in flow, chat interface, uploads, and the operator tools used to receive and send messages.",
-        "The goal of this page is transparency. It describes the information the project handles and the practical reasons that information is used.",
+        "The short version: MeGPT is not a private diary or a sealed inbox. If you send a message through the site, a human operator may be able to read and reply to it.",
+        "This privacy policy applies to the MeGPT website, guest sessions, Google sign-in flow, chat interface, uploads, and operator tools used to receive and send messages.",
+        "The goal here is transparency. This page describes the information the project handles and the practical reasons it is used.",
       ]}
       dateLabel="Updated"
       dateValue="April 16, 2026"
       sections={[
         {
-          title: "Information We Collect",
+          title: "What MeGPT Collects",
           paragraphs: [
-            "The information MeGPT collects depends on how you use the site. If you use guest mode, the app stores a temporary guest identifier so it can keep your session connected to the right conversation.",
+            "The information MeGPT collects depends on how you use the site. If you use guest mode, the app stores a temporary guest identifier so your browser stays connected to the right conversation.",
             "If you sign in with Google, the project may receive basic account information such as your name, email address, profile image, and the identifiers needed to keep you signed in.",
             "When you send a message, MeGPT may store the message itself, timestamps, conversation IDs, status information, and any images you upload so the chat can appear in the interface and be answered by the operator workflow.",
           ],
@@ -30,21 +30,21 @@ export default function PrivacyPage() {
           ],
         },
         {
-          title: "How We Use Information",
+          title: "Why It Is Used",
           paragraphs: [
             "MeGPT uses information to run the site, connect messages to the correct user or guest session, show conversation history, route messages to the operator workflow, and deliver replies back to the chat interface.",
             "Information may also be used to prevent abuse, enforce conversation limits, troubleshoot bugs, maintain database records, and understand whether the site is working reliably.",
           ],
         },
         {
-          title: "Human Review and Service Providers",
+          title: "Who May See It",
           paragraphs: [
-            "A human operator may read, manage, and reply to messages sent through MeGPT. That is part of the core design of the project, not an exception.",
-            "Depending on how the project is deployed, information may also pass through third-party providers that help run the site, such as Google for sign-in, hosting and database providers, Discord for operator message handling, and optional analytics providers. Those providers may process information according to their own terms and privacy notices.",
+            "A human operator may read, manage, and reply to messages sent through MeGPT. That is part of the core design of the project, not a rare exception.",
+            "Depending on how the project is deployed, information may also pass through third-party providers that help run the site, such as Google for sign-in, hosting and database providers, Discord for operator message handling, and optional analytics providers. Those providers handle information according to their own terms and privacy notices.",
           ],
         },
         {
-          title: "How Long We Keep Information",
+          title: "How Long It Stays Around",
           paragraphs: [
             "Guest conversations are meant to be temporary. In this project, guest chats are normally deleted after about 30 minutes of inactivity unless the deployment uses a different retention setting.",
             "Signed-in account conversations may be kept longer so they remain visible in the interface and operator workflow. Some logs and related metadata may remain longer when needed for reliability, troubleshooting, abuse prevention, or legal compliance.",
@@ -60,14 +60,14 @@ export default function PrivacyPage() {
           ],
         },
         {
-          title: "Security and Limits",
+          title: "Security Limits",
           paragraphs: [
             "MeGPT uses reasonable steps to protect stored information, but no website or online service can promise perfect security.",
             "Using the site means accepting the usual risks of internet communication, cloud storage, and human handling of messages.",
           ],
         },
         {
-          title: "Changes to This Policy",
+          title: "Updates",
           paragraphs: [
             "This policy may change if the project changes. When it does, the date at the top of this page will be updated.",
             "If you continue using MeGPT after a change takes effect, the updated policy will apply going forward.",

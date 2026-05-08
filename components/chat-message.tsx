@@ -46,6 +46,9 @@ export function ChatMessage({
   const [feedback, setFeedback] = useState<FeedbackAction | null>(null)
   const [feedbackTick, setFeedbackTick] = useState(0)
   const [rating, setRating] = useState<Rating>(null)
+  const [failedImageUrls, setFailedImageUrls] = useState<Set<string>>(
+    () => new Set()
+  )
   const feedbackTimeoutRef = useRef<number | null>(null)
   const renderedImageUrls =
     imageUrls.length > 0
@@ -81,6 +84,19 @@ export function ChatMessage({
         onImageLoad?.()
       })
     }
+  }
+
+  const handleImageError = (failedImageUrl: string) => {
+    setFailedImageUrls((currentFailedImageUrls) => {
+      if (currentFailedImageUrls.has(failedImageUrl)) {
+        return currentFailedImageUrls
+      }
+
+      const nextFailedImageUrls = new Set(currentFailedImageUrls)
+      nextFailedImageUrls.add(failedImageUrl)
+      return nextFailedImageUrls
+    })
+    onImageLoad?.()
   }
 
   const showFeedback = (nextFeedback: FeedbackAction, duration = 850) => {
@@ -162,25 +178,42 @@ export function ChatMessage({
                     renderedImageUrls.length > 1 ? "grid-cols-2" : "grid-cols-1"
                   )}
                 >
-                  {renderedImageUrls.map((nextImageUrl, index) => (
-                    <button
-                      key={`${nextImageUrl}:${index}`}
-                      type="button"
-                      className="group/image block overflow-hidden rounded-2xl border border-border text-left"
-                      onClick={() => setExpandedImageUrl(nextImageUrl)}
-                      title="Open image"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        ref={handleImageElement}
-                        src={nextImageUrl}
-                        alt={content || "Operator reply image"}
-                        className="max-h-[22rem] w-full object-cover transition-transform duration-200 group-hover/image:scale-[1.01] sm:max-h-[28rem]"
-                        onLoad={onImageLoad}
-                        onError={onImageLoad}
-                      />
-                    </button>
-                  ))}
+                  {renderedImageUrls.map((nextImageUrl, index) => {
+                    const imageFailed = failedImageUrls.has(nextImageUrl)
+
+                    return imageFailed ? (
+                      <div
+                        key={`${nextImageUrl}:${index}`}
+                        className="rounded-2xl border border-dashed border-border bg-muted/30 px-4 py-5 text-left"
+                      >
+                        <p className="text-sm font-medium text-foreground">
+                          Image unavailable
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                          This image could not be loaded. It may have expired before MeGPT
+                          could save a local copy.
+                        </p>
+                      </div>
+                    ) : (
+                      <button
+                        key={`${nextImageUrl}:${index}`}
+                        type="button"
+                        className="group/image block overflow-hidden rounded-2xl border border-border text-left"
+                        onClick={() => setExpandedImageUrl(nextImageUrl)}
+                        title="Open image"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          ref={handleImageElement}
+                          src={nextImageUrl}
+                          alt={content || "Operator reply image"}
+                          className="max-h-[22rem] w-full object-cover transition-transform duration-200 group-hover/image:scale-[1.01] sm:max-h-[28rem]"
+                          onLoad={onImageLoad}
+                          onError={() => handleImageError(nextImageUrl)}
+                        />
+                      </button>
+                    )
+                  })}
                 </div>
                 {content ? (
                   <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">

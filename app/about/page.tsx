@@ -9,7 +9,7 @@ export default function AboutPage() {
       intro={[
         "Hi, I'm David Yoder. I'm a student at Davidson College in the class of 2026.",
         "I made this site for Radical Software, a class about software as a creative, social, and critical medium.",
-        "MeGPT is intentionally a little uncanny: it looks like a chatbot, but the reply workflow is human-assisted. The project is partly about the interface, partly about expectation, and partly about what changes when software admits there is a person behind the curtain.",
+        "I wanted to see what it'd be like to be on the other end of ChatGPT. Recieving and replying to messages constantly, appeasing to the user, etc.",
       ]}
       dateLabel="Project"
       dateValue="Radical Software"

@@ -102,7 +102,7 @@ export function LegalDocument({
 
         <div className="mt-12 rounded-[1.5rem] border border-border/70 bg-card/30 px-5 py-5 sm:mt-16 sm:rounded-[2rem] sm:px-8 sm:py-6">
           <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Plain-language summary
+            Quick version
           </p>
           <p className="mt-3 text-[0.98rem] leading-7 text-foreground sm:mt-4 sm:text-lg sm:leading-8">
             {summary}
@@ -162,9 +162,9 @@ export function LegalDocument({
 
         <div className="mt-12 border-t border-border/80 pt-6 sm:mt-16 sm:pt-8">
           <p className="text-sm leading-7 text-muted-foreground">
-            MeGPT is a school project. These pages are meant to clearly describe how the site
-            works, but they are not a substitute for attorney review if the project later
-            becomes a commercial product or handles sensitive regulated data.
+            MeGPT is a school project. These pages are meant to describe how the site works in
+            everyday language, but they are not a substitute for attorney review if the project
+            later becomes a commercial product or handles sensitive regulated data.
           </p>
         </div>
       </article>

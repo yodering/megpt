@@ -230,7 +230,12 @@ export async function saveRemoteImage(
   mimeType: string | null | undefined,
   fileName?: string | null
 ) {
-  const response = await fetch(imageUrl)
+  const response = await fetch(imageUrl, {
+    headers: {
+      Accept: "image/avif,image/webp,image/png,image/jpeg,image/gif,*/*",
+      "User-Agent": "MeGPT image fetcher",
+    },
+  })
   if (!response.ok) {
     throw new Error(`Failed to fetch remote image (${response.status}).`)
   }
