@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { BlurReveal, BlurRevealWord } from "@/components/ui/blur-reveal"
 import { ShimmerText } from "@/components/ui/shimmer-text"
+import { appPath } from "@/lib/paths"
 import { cn } from "@/lib/utils"
 
 interface ChatMessageProps {
@@ -56,6 +57,10 @@ export function ChatMessage({
       : imageUrl
         ? [imageUrl]
         : []
+  const renderedImages = renderedImageUrls.map((rawUrl) => ({
+    rawUrl,
+    resolvedUrl: resolveChatImageUrl(rawUrl),
+  }))
 
   useEffect(() => {
     if (!expandedImageUrl) return
@@ -170,20 +175,20 @@ export function ChatMessage({
                 : "bg-transparent text-foreground"
             )}
           >
-            {contentType === "image" && renderedImageUrls.length > 0 ? (
+            {contentType === "image" && renderedImages.length > 0 ? (
               <>
                 <div
                   className={cn(
                     "mb-3 grid gap-3",
-                    renderedImageUrls.length > 1 ? "grid-cols-2" : "grid-cols-1"
+                    renderedImages.length > 1 ? "grid-cols-2" : "grid-cols-1"
                   )}
                 >
-                  {renderedImageUrls.map((nextImageUrl, index) => {
-                    const imageFailed = failedImageUrls.has(nextImageUrl)
+                  {renderedImages.map(({ rawUrl, resolvedUrl }, index) => {
+                    const imageFailed = failedImageUrls.has(rawUrl)
 
                     return imageFailed ? (
                       <div
-                        key={`${nextImageUrl}:${index}`}
+                        key={`${rawUrl}:${index}`}
                         className="rounded-2xl border border-dashed border-border bg-muted/30 px-4 py-5 text-left"
                       >
                         <p className="text-sm font-medium text-foreground">
@@ -196,20 +201,20 @@ export function ChatMessage({
                       </div>
                     ) : (
                       <button
-                        key={`${nextImageUrl}:${index}`}
+                        key={`${rawUrl}:${index}`}
                         type="button"
                         className="group/image block overflow-hidden rounded-2xl border border-border text-left"
-                        onClick={() => setExpandedImageUrl(nextImageUrl)}
+                        onClick={() => setExpandedImageUrl(resolvedUrl)}
                         title="Open image"
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           ref={handleImageElement}
-                          src={nextImageUrl}
+                          src={resolvedUrl}
                           alt={content || "Operator reply image"}
                           className="max-h-[22rem] w-full object-cover transition-transform duration-200 group-hover/image:scale-[1.01] sm:max-h-[28rem]"
                           onLoad={onImageLoad}
-                          onError={() => handleImageError(nextImageUrl)}
+                          onError={() => handleImageError(rawUrl)}
                         />
                       </button>
                     )
@@ -352,4 +357,17 @@ function AnimatedAssistantText({ content }: { content: string }) {
       )}
     </div>
   )
+}
+
+function resolveChatImageUrl(imageUrl: string) {
+  if (
+    imageUrl.startsWith("http://") ||
+    imageUrl.startsWith("https://") ||
+    imageUrl.startsWith("blob:") ||
+    imageUrl.startsWith("data:")
+  ) {
+    return imageUrl
+  }
+
+  return appPath(imageUrl)
 }
