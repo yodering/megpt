@@ -1,6 +1,7 @@
 "use client"
 
-import { ChevronDown, PanelLeft, PenBox, Share } from "lucide-react"
+import Link from "next/link"
+import { ArrowUpRight, ChevronDown, PanelLeft, PenBox, Share } from "lucide-react"
 import { ProfileMenu } from "@/components/profile-menu"
 import { Button } from "@/components/ui/button"
 
@@ -52,6 +53,13 @@ export function ChatHeader({
           <span className="truncate font-medium">MeGPT</span>
           <ChevronDown className="h-4 w-4 shrink-0" />
         </Button>
+        <Link
+          href="https://yoder.ing"
+          className="hidden h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:inline-flex"
+        >
+          <span>Back to yoder.ing</span>
+          <ArrowUpRight className="h-3.5 w-3.5" />
+        </Link>
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
