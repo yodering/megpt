@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useSession } from "next-auth/react"
-import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react"
 import { HeroPrompt } from "@/components/hero-prompt"
 import { Sidebar } from "@/components/sidebar"
 import { ChatHeader } from "@/components/chat-header"
@@ -47,18 +47,6 @@ interface ConversationSummary {
 
 export default function Home() {
   const { data: session, status: sessionStatus } = useSession()
-  const [guestId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null
-
-    const existingGuestId = window.sessionStorage.getItem("megpt-guest-id")
-    if (existingGuestId) {
-      return existingGuestId
-    }
-
-    const nextGuestId = crypto.randomUUID().replace(/-/g, "")
-    window.sessionStorage.setItem("megpt-guest-id", nextGuestId)
-    return nextGuestId
-  })
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [composerNotice, setComposerNotice] = useState<string | null>(null)
@@ -78,23 +66,14 @@ export default function Home() {
 
   const identityKey =
     session?.user?.email ??
-    (sessionStatus === "unauthenticated" && guestId ? `guest:${guestId}` : null)
+    (sessionStatus === "unauthenticated" ? "guest" : null)
   const identityReady = identityKey !== null
   const activeConversationStatus = conversation?.status ?? null
   const hasPendingConversation = conversations.some(
     (item) => item.status === "awaiting_admin"
   )
   const inputDisabled = !identityReady || isLoading || hasPendingConversation
-  const guestHeaders: Record<string, string> | undefined = useMemo(
-    () => (guestId ? { "x-guest-id": guestId } : undefined),
-    [guestId]
-  )
-  const jsonHeaders: Record<string, string> = guestId
-    ? {
-        "Content-Type": "application/json",
-        "x-guest-id": guestId,
-      }
-    : { "Content-Type": "application/json" }
+  const jsonHeaders: Record<string, string> = { "Content-Type": "application/json" }
   const sidebarChats = conversations.map((item) => ({
     id: item.id,
     title:
@@ -250,16 +229,10 @@ export default function Home() {
     if (!identityReady) return
 
     const requestId = beginConversationRequest()
-    const headers =
-      session?.user?.email || !guestId
-        ? undefined
-        : { "x-guest-id": guestId }
-
     async function loadConversation(activeId?: number | null) {
       const search = activeId ? `?conversationId=${activeId}` : ""
       const response = await fetch(appPath(`/api/conversation${search}`), {
         cache: "no-store",
-        headers,
       })
       if (!response.ok) return
       const data = await response.json()
@@ -268,7 +241,7 @@ export default function Home() {
     }
 
     loadConversation()
-  }, [guestId, identityReady, session?.user?.email])
+  }, [identityReady, session?.user?.email])
 
   useEffect(() => {
     if (!identityReady || !conversationId) return
@@ -281,7 +254,6 @@ export default function Home() {
     const refreshConversation = async () => {
       const response = await fetch(appPath(`/api/conversation?conversationId=${conversationId}`), {
         cache: "no-store",
-        headers: guestHeaders,
       }).catch(() => null)
 
       if (!response?.ok || cancelled) return
@@ -303,7 +275,6 @@ export default function Home() {
   }, [
     activeConversationStatus,
     conversationId,
-    guestHeaders,
     identityReady,
   ])
 
@@ -365,7 +336,6 @@ export default function Home() {
         image
           ? {
               method: "POST",
-              headers: guestId ? { "x-guest-id": guestId } : undefined,
               body: buildMessageFormData({ text, image, conversationId }),
             }
           : {
@@ -512,7 +482,6 @@ export default function Home() {
 
     const response = await fetch(appPath(`/api/conversation?conversationId=${nextConversationId}`), {
       cache: "no-store",
-      headers: guestHeaders,
     })
     if (!response.ok) return
 
@@ -535,7 +504,6 @@ export default function Home() {
 
     const response = await fetch(appPath(`/api/conversation/${conversationToDeleteId}`), {
       method: "DELETE",
-      headers: guestHeaders,
     })
 
     if (!response.ok) return

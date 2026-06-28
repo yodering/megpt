@@ -13,7 +13,7 @@ import {
   saveUploadedImage,
 } from "@/lib/image-uploads"
 import { MESSAGE_MAX_CHARS } from "@/lib/message-limit"
-import { getRequestIdentity } from "@/lib/request-identity"
+import { getOrCreateRequestIdentity, setGuestIdentityCookie } from "@/lib/request-identity"
 
 export const runtime = "nodejs"
 
@@ -49,11 +49,7 @@ async function parseIncomingMessage(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const identity = await getRequestIdentity(req)
-
-  if (!identity) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const { identity, setGuestCookie } = await getOrCreateRequestIdentity(req)
 
   if (identity.isGuest) {
     await cleanupExpiredGuestConversations()
@@ -121,8 +117,11 @@ export async function POST(req: NextRequest) {
     console.error("Failed to sync user message to Discord", error)
   }
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     conversation: updatedConversation ?? conversation,
     message,
   })
+  if (setGuestCookie) setGuestIdentityCookie(response, identity)
+
+  return response
 }

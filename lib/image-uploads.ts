@@ -190,6 +190,29 @@ export async function readUploadedImageByUrl(imageUrl: string) {
   }
 }
 
+export async function readUploadedImageByUrlForUser(imageUrl: string, userEmail: string) {
+  await ensureUserCanReadImage(imageUrl, userEmail)
+  return readUploadedImageByUrl(imageUrl)
+}
+
+async function ensureUserCanReadImage(imageUrl: string, userEmail: string) {
+  await ensureAppSchema()
+  const pool = getDbPool()
+  const result = await pool.query<{ id: number }>(
+    `SELECT m.id
+     FROM messages m
+     INNER JOIN conversations c ON c.id = m."conversationId"
+     WHERE m."imageUrl" = $1
+       AND c."userEmail" = $2
+     LIMIT 1`,
+    [imageUrl, userEmail]
+  )
+
+  if (!result.rowCount) {
+    throw new Error("Image not found.")
+  }
+}
+
 export async function deleteUploadedImageByUrl(imageUrl: string | null | undefined) {
   if (!imageUrl) return
 

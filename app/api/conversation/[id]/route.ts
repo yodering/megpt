@@ -9,7 +9,7 @@ import {
 } from "@/lib/conversations"
 import { cleanupExpiredGuestConversations } from "@/lib/guest-conversations"
 import { deleteUploadedImageByUrl } from "@/lib/image-uploads"
-import { getRequestIdentity } from "@/lib/request-identity"
+import { getOrCreateRequestIdentity, setGuestIdentityCookie } from "@/lib/request-identity"
 
 export const runtime = "nodejs"
 
@@ -18,11 +18,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   await ensureDiscordBot()
-  const identity = await getRequestIdentity(_req)
-
-  if (!identity) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const { identity, setGuestCookie } = await getOrCreateRequestIdentity(_req)
 
   if (identity.isGuest) {
     await cleanupExpiredGuestConversations()
@@ -59,18 +55,17 @@ export async function DELETE(
 
   const conversations = await listConversationsForUser(identity.userEmail)
 
-  return NextResponse.json({ ok: true, conversations })
+  const response = NextResponse.json({ ok: true, conversations })
+  if (setGuestCookie) setGuestIdentityCookie(response, identity)
+
+  return response
 }
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const identity = await getRequestIdentity(req)
-
-  if (!identity) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const { identity, setGuestCookie } = await getOrCreateRequestIdentity(req)
 
   if (identity.isGuest) {
     await cleanupExpiredGuestConversations()
@@ -102,5 +97,8 @@ export async function PATCH(
 
   const conversations = await listConversationsForUser(identity.userEmail)
 
-  return NextResponse.json({ ok: true, conversation, conversations })
+  const response = NextResponse.json({ ok: true, conversation, conversations })
+  if (setGuestCookie) setGuestIdentityCookie(response, identity)
+
+  return response
 }

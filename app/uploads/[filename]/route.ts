@@ -1,14 +1,23 @@
 import { NextRequest } from "next/server"
-import { readUploadedImageByUrl } from "@/lib/image-uploads"
+import { readUploadedImageByUrlForUser } from "@/lib/image-uploads"
+import { getRequestIdentity } from "@/lib/request-identity"
 
 export const runtime = "nodejs"
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ filename: string }> }
 ) {
+  const identity = await getRequestIdentity(req)
+  if (!identity) {
+    return new Response("Not found", { status: 404 })
+  }
+
   const { filename } = await params
-  const image = await readUploadedImageByUrl(`/uploads/${filename}`)
+  const image = await readUploadedImageByUrlForUser(
+    `/uploads/${filename}`,
+    identity.userEmail
+  ).catch(() => null)
 
   if (!image) {
     return new Response("Not found", { status: 404 })
@@ -19,7 +28,7 @@ export async function GET(
   return new Response(body, {
     headers: {
       "Content-Type": image.mimeType,
-      "Cache-Control": "public, max-age=31536000, immutable",
+      "Cache-Control": "private, max-age=31536000, immutable",
     },
   })
 }

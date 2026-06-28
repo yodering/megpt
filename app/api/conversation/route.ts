@@ -6,17 +6,13 @@ import {
 } from "@/lib/conversations"
 import { ensureDiscordBot } from "@/lib/discord-bot"
 import { cleanupExpiredGuestConversations } from "@/lib/guest-conversations"
-import { getRequestIdentity } from "@/lib/request-identity"
+import { getOrCreateRequestIdentity, setGuestIdentityCookie } from "@/lib/request-identity"
 
 export const runtime = "nodejs"
 
 export async function GET(req: NextRequest) {
   await ensureDiscordBot()
-  const identity = await getRequestIdentity(req)
-
-  if (!identity) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const { identity, setGuestCookie } = await getOrCreateRequestIdentity(req)
 
   if (identity.isGuest) {
     await cleanupExpiredGuestConversations()
@@ -30,19 +26,18 @@ export async function GET(req: NextRequest) {
   )
   const conversations = await listConversationsForUser(identity.userEmail)
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     conversations,
     activeConversation: conversation.conversation,
     messages: conversation.messages,
   })
+  if (setGuestCookie) setGuestIdentityCookie(response, identity)
+
+  return response
 }
 
 export async function POST(req: NextRequest) {
-  const identity = await getRequestIdentity(req)
-
-  if (!identity) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const { identity, setGuestCookie } = await getOrCreateRequestIdentity(req)
 
   if (identity.isGuest) {
     await cleanupExpiredGuestConversations()
@@ -54,5 +49,8 @@ export async function POST(req: NextRequest) {
   )
   const conversations = await listConversationsForUser(identity.userEmail)
 
-  return NextResponse.json({ conversation, conversations })
+  const response = NextResponse.json({ conversation, conversations })
+  if (setGuestCookie) setGuestIdentityCookie(response, identity)
+
+  return response
 }
