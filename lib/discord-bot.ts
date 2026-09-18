@@ -3,6 +3,7 @@ import {
   ChannelType,
   Client,
   GatewayIntentBits,
+  Options,
   type MessageCreateOptions,
   type Snowflake,
   type TextChannel,
@@ -423,6 +424,8 @@ export async function ensureDiscordBot() {
       const client =
         globalThis.discordClient ??
         new Client({
+          // Replies are handled as events and persisted in Postgres; no message history is read from this cache.
+          makeCache: Options.cacheWithLimits({ ...Options.DefaultMakeCacheSettings, MessageManager: 0 }),
           intents: [
             GatewayIntentBits.Guilds,
             GatewayIntentBits.GuildMessages,

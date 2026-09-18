@@ -252,6 +252,7 @@ export default function Home() {
     let cancelled = false
 
     const refreshConversation = async () => {
+      if (document.visibilityState !== "visible") return
       const response = await fetch(appPath(`/api/conversation?conversationId=${conversationId}`), {
         cache: "no-store",
       }).catch(() => null)
@@ -264,6 +265,8 @@ export default function Home() {
       applyConversationSnapshot(data, { notify: true })
     }
 
+    const onVisibilityChange = () => { void refreshConversation() }
+    document.addEventListener("visibilitychange", onVisibilityChange)
     const interval = window.setInterval(() => {
       void refreshConversation()
     }, 5000)
@@ -271,6 +274,7 @@ export default function Home() {
     return () => {
       cancelled = true
       window.clearInterval(interval)
+      document.removeEventListener("visibilitychange", onVisibilityChange)
     }
   }, [
     activeConversationStatus,
