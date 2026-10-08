@@ -10,15 +10,17 @@ const fileServer = `
     root * {$STATIC_ROOT:/srv}
     @retired path /api /api/* /uploads /uploads/*
     respond @retired "MeGPT has concluded." 410
-    file_server
+    file_server {
+      disable_canonical_uris
+    }
 `
+// The existing public proxy normalizes trailing slashes. Serve both forms without redirects.
 const routes = basePath ? `
-  redir / ${basePath}/ 308
-  redir ${basePath} ${basePath}/ 308
-  handle_path ${basePath}/* {${fileServer}  }
-  handle {
-    respond "Not found" 404
-  }
+  @prefixed path ${basePath} ${basePath}/*
+  handle @prefixed {
+    uri strip_prefix ${basePath}
+${fileServer}  }
+  handle {${fileServer}  }
 ` : fileServer
 const config = `{
   admin off

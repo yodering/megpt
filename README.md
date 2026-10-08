@@ -30,7 +30,7 @@ NEXT_PUBLIC_BASE_PATH=/megpt
 NEXT_PUBLIC_SITE_URL=https://yoder.ing
 ```
 
-Caddy listens on Railway's `PORT`, defaulting to 8080. The existing domain/proxy should continue pointing to the same MeGPT web service. `/` redirects to `/megpt/`, and `/megpt/about/` serves the project explanation. Old `/megpt/api/*` and `/megpt/uploads/*` URLs return HTTP 410. Unknown pages return 404 instead of the homepage.
+Caddy listens on Railway's `PORT`, defaulting to 8080. The existing domain/proxy should continue pointing to the same MeGPT web service. Both `/` and `/megpt` serve the archive. `/megpt/about` serves the project explanation. Paths with or without trailing slashes are supported to accommodate the existing public proxy. Old `/megpt/api/*` and `/megpt/uploads/*` URLs return HTTP 410. Unknown pages return 404 instead of the homepage.
 
 Keep the MeGPT web service running. It is now just a static file host. Do not enable sleeping if immediate availability is preferred. Caddy still incurs Railway resource usage; savings must be measured after deployment.
 
