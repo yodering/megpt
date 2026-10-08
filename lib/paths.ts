@@ -5,8 +5,7 @@ function normalizeBasePath(value: string | undefined) {
   return withLeadingSlash.replace(/\/+$/g, "")
 }
 
-export const APP_BASE_PATH = normalizeBasePath(process.env.NEXT_PUBLIC_BASE_PATH)
-export const NEXT_AUTH_BASE_PATH = `${APP_BASE_PATH}/api/auth`
+export const APP_BASE_PATH = normalizeBasePath(process.env.NEXT_PUBLIC_BASE_PATH ?? "/megpt")
 
 export function appPath(path: string) {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`

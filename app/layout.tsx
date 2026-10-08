@@ -4,8 +4,6 @@ import { Providers } from "@/components/providers"
 import { APP_BASE_PATH, appPath } from "@/lib/paths"
 import "./globals.css"
 
-export const dynamic = "force-dynamic"
-export const revalidate = 0
 
 const geistSans = Geist({
   subsets: ["latin"],
@@ -61,7 +59,7 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://yoder.ing"
   ),
   title: "megpt",
-  description: "ChatGPT but a little different",
+  description: "An archived experiment exploring AI interfaces and human authorship.",
   icons: {
     icon: appPath("/icon.svg"),
   },
@@ -70,14 +68,14 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "MeGPT",
-    description: "ChatGPT but a little different",
+    description: "An archived experiment exploring AI interfaces and human authorship.",
     url: APP_BASE_PATH || "/",
     siteName: "MeGPT",
   },
   twitter: {
     card: "summary",
     title: "MeGPT",
-    description: "ChatGPT but a little different",
+    description: "An archived experiment exploring AI interfaces and human authorship.",
   },
 }
 
@@ -86,11 +84,6 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
 }
-
-const umamiScriptUrl = process.env.NEXT_PUBLIC_UMAMI_SCRIPT_URL
-const umamiWebsiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID
-const umamiDomains = process.env.NEXT_PUBLIC_UMAMI_DOMAINS
-const umamiHostUrl = process.env.NEXT_PUBLIC_UMAMI_HOST_URL
 
 export default function RootLayout({
   children,
@@ -103,17 +96,6 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} dark`}
     >
-      <head>
-        {process.env.NODE_ENV === "production" && umamiScriptUrl && umamiWebsiteId ? (
-          <script
-            defer
-            src={umamiScriptUrl}
-            data-website-id={umamiWebsiteId}
-            data-domains={umamiDomains}
-            data-host-url={umamiHostUrl}
-          />
-        ) : null}
-      </head>
       <body suppressHydrationWarning className="h-dvh overflow-hidden font-sans antialiased">
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <Providers>{children}</Providers>

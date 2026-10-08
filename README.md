@@ -1,68 +1,45 @@
-# MeGPT
+# MeGPT archive
 
-MeGPT is a basic AI chatbot UI clone built for David Yoder's Radical Software work at Davidson College. It borrows the familiar shape of a ChatGPT-style interface, but the response does not come from a model.
+MeGPT was an experimental project exploring AI interfaces and human authorship, created by David Yoder for Radical Software at Davidson College. Replies originally came from a human through Discord.
 
-The project works as a small commentary on AI interfaces, automation, authorship, and trust. A user types into something that looks like a chatbot, waits in the same way they might wait for an assistant, and receives a reply routed through a real person using Discord as the backend inbox.
+The site is now a static archive. Messaging, authentication, uploads, conversation history, database access, Discord connections, and analytics scripts have been removed. The original implementation remains in Git history.
 
-The app supports guest conversations, Google sign-in, persistent chat history, image uploads, and Discord thread mirroring so each conversation can be handled personally while Postgres remains the source of truth.
+## Development
 
-## What It Does
+Use Bun for package commands:
 
-- ChatGPT-like UI built with Next.js App Router, React, and Tailwind CSS.
-- Guest mode with temporary session IDs, plus optional Google auth through NextAuth.
-- Postgres-backed conversations, messages, Discord thread mappings, pins, statuses, and uploaded images.
-- One pending user request per conversation, so the app behaves less like instant automation and more like a mediated human reply.
-- Discord inbox: user messages create or reuse a Discord thread, and David's replies in that thread are saved back into the app.
-- Image uploads from the web app and image replies from Discord.
-- Optional Umami analytics.
-
-## Tech Stack
-
-- Runtime/package manager: Bun
-- Framework: Next.js 16
-- UI: React 19, Tailwind CSS 4, lucide-react, motion
-- Auth: NextAuth with Google provider and JWT sessions
-- Database: PostgreSQL through `pg`
-- Reply surface: Discord bot through `discord.js`
-
-## Repository Layout
-
-```text
-app/                  Next.js routes, pages, API handlers, metadata
-components/           Chat UI, sidebar, auth/profile controls, shared UI
-lib/                  Database, auth, conversations, Discord, uploads, helpers
-docs/                 Setup notes and product decisions
-public/               Static icons and public assets
-```
-
-## Local Development
-
-Use Bun for all package commands.
-
-```bash
+```sh
 bun install
 bun dev
+bun run lint
+bun run build
 ```
 
-The dev server runs at:
+The default URL is `http://localhost:3000/megpt`. Set `NEXT_PUBLIC_BASE_PATH` to an empty string to build for a domain root instead. Both the Next export and generated Caddy configuration use the same build-time value.
+
+The build produces `out/` and `.static/Caddyfile`. If Caddy is installed locally, `bun start` previews the exported files on port 8080, or the port specified by `PORT`.
+
+## Railway hosting
+
+`railway.toml` selects the multi-stage Dockerfile. Bun builds static HTML, CSS, and JavaScript. The final container contains Caddy and the exported files only; it does not contain the Next.js server, Bun, Node, or a database client.
+
+Set these build variables to preserve the public URL:
 
 ```text
-http://localhost:3000
+NEXT_PUBLIC_BASE_PATH=/megpt
+NEXT_PUBLIC_SITE_URL=https://yoder.ing
 ```
 
-Other useful commands:
+Caddy listens on Railway's `PORT`, defaulting to 8080. The existing domain/proxy should continue pointing to the same MeGPT web service. `/` redirects to `/megpt/`, and `/megpt/about/` serves the project explanation. Old `/megpt/api/*` and `/megpt/uploads/*` URLs return HTTP 410. Unknown pages return 404 instead of the homepage.
 
-```bash
-bun run build
-bun run start
-bun run lint
-```
+Keep the MeGPT web service running. It is now just a static file host. Do not enable sleeping if immediate availability is preferred. Caddy still incurs Railway resource usage; savings must be measured after deployment.
 
-Behavior:
+## Complete the live retirement
 
-- A user message is saved to Postgres.
-- The app creates or reuses a Discord thread for that conversation.
-- The user message is mirrored into the thread.
-- A Discord reply in that thread is saved as David's response.
-- The web UI polls for updates and shows the reply to the original user.
-- Uploaded images are stored in Postgres and served through `/api/images/:id`.
+1. Deploy this commit to the existing MeGPT web service, preserving its public networking and reverse proxy. Confirm the archive and About page work at `https://yoder.ing/megpt` and `https://yoder.ing/megpt/about`.
+2. Verify that the retired API returns 410 and that no Discord listener remains in the web deployment.
+3. Stop the **MeGPT project's Postgres service** after the static deployment succeeds. This stops database compute charges. Its retained volume and backups continue to incur storage charges until removed.
+4. If permanently discarding old conversations, delete that database service's volume and backups as a separate irreversible step. The static site never copies or exposes old conversations or images. Any historical Discord threads remain in Discord until separately deleted.
+5. Remove obsolete database, Discord, Google OAuth, NextAuth, and Umami environment variables from the MeGPT web service. No secrets are required for the archive. Do not modify PJBot or other projects.
+
+The static build does not itself stop or delete Railway database resources. Railway CLI authentication is required to finish that operational step.

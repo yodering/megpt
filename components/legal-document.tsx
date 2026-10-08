@@ -57,7 +57,7 @@ export function LegalDocument({
               className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to chat
+              Back to MeGPT
             </Link>
           </div>
 
@@ -88,6 +88,12 @@ export function LegalDocument({
       </header>
 
       <article className="mx-auto max-w-[46rem] px-4 pb-20 pt-12 sm:px-8 sm:pb-24 sm:pt-24">
+        {kind !== "about" ? (
+          <p className="mb-10 rounded-2xl border border-border bg-card p-5 text-sm leading-6 text-muted-foreground">
+            Archived documentation from the original project. MeGPT no longer offers
+            messaging, sign-in, uploads, or access to conversation history.
+          </p>
+        ) : null}
         <p className="text-center text-sm text-muted-foreground">
           {dateLabel}: {dateValue}
         </p>
@@ -162,9 +168,8 @@ export function LegalDocument({
 
         <div className="mt-12 border-t border-border/80 pt-6 sm:mt-16 sm:pt-8">
           <p className="text-sm leading-7 text-muted-foreground">
-            MeGPT is a school project. These pages are meant to describe how the site works in
-            everyday language, but they are not a substitute for attorney review if the project
-            later becomes a commercial product or handles sensitive regulated data.
+            MeGPT has concluded. This page documents the original project; messaging,
+            sign-in, uploads, and conversation history are no longer available.
           </p>
         </div>
       </article>

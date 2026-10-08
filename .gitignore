@@ -25,3 +25,6 @@ bun-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Generated static server config
+/.static/
