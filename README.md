@@ -17,17 +17,19 @@ bun run build
 
 The default URL is `http://localhost:3000/megpt`. Set `NEXT_PUBLIC_BASE_PATH` to an empty string to build for a domain root instead. Both the Next export and generated Caddy configuration use the same build-time value.
 
-The build produces `out/` and `.static/Caddyfile`. If Caddy is installed locally, `bun start` previews the exported files on port 8080, or the port specified by `PORT`.
+The build produces `out/`, `netlify-dist/`, and `.static/Caddyfile`. If Caddy is installed locally, `bun start` previews the exported files on port 8080, or the port specified by `PORT`.
 
-## Netlify hosting at yoder.ing/megpt
+## Independent Netlify hosting
 
-The archive is built into `public/megpt` in the `yodering/portfolio-react` repository. Netlify publishes it with the portfolio's existing `dist` deployment. No separate MeGPT container, backend, or database is needed.
+MeGPT is deployed from `yodering/megpt` to its own static Netlify site. `netlify.toml` selects Bun, runs `bun run build`, and publishes `netlify-dist`. The Next.js adapter is skipped; the deployment contains no serverless or edge functions.
 
-The portfolio's `scripts/build-megpt.mjs` downloads this public repository at a pinned source commit and runs `bun install --frozen-lockfile` followed by `bun run build`. It copies the export into `public/megpt` before Vite builds the portfolio. To refresh the archive, update `sourceCommit` in that script and deploy the portfolio.
+The build exports the archive under `/megpt` in `netlify-dist`. Explicit local rewrites serve archive pages with or without trailing slashes. Retired API and upload GET/HEAD requests return 410, unsupported methods are rejected by static hosting, and missing archive paths return 404. The generated `archive-manifest.json` records Netlify's deployed commit.
 
-The generated `archive-manifest.json` records the source commit. The portfolio's `_redirects` file serves retired `/megpt/api` and `/megpt/uploads` URLs with HTTP 410 for GET and HEAD requests and returns the archive's 404 page for missing paths. Existing files take precedence over that 404 rule. The portfolio's SPA fallback applies after the archive rules.
+The `yodering/portfolio-react` site's `_redirects` rules proxy `/megpt` to this separate Netlify site. Visitors continue using `https://yoder.ing/megpt`. The portfolio does not download or build MeGPT.
 
-Deploy and verify `/megpt`, `/megpt/about`, `/megpt/privacy`, `/megpt/terms`, static assets, retired URLs, and unknown URLs before stopping the Railway web service.
+Push changes to this repository's `main` branch to rebuild MeGPT independently. No portfolio deployment is needed unless its proxy configuration changes. No secrets are required for the archive.
+
+The existing Dockerfile and Caddy build output remain available for rollback; Railway is not involved in normal hosting.
 
 ## Retire Railway resources
 

@@ -2,9 +2,10 @@
   "name": "megpt",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "bun@1.4.2",
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "next build && bun scripts/prepare-static.ts",
+    "build": "next build && bun scripts/prepare-static.ts && bun scripts/prepare-netlify.ts",
     "start": "STATIC_ROOT=./out caddy run --config .static/Caddyfile --adapter caddyfile",
     "lint": "eslint"
   },
