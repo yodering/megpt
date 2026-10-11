@@ -19,27 +19,20 @@ The default URL is `http://localhost:3000/megpt`. Set `NEXT_PUBLIC_BASE_PATH` to
 
 The build produces `out/` and `.static/Caddyfile`. If Caddy is installed locally, `bun start` previews the exported files on port 8080, or the port specified by `PORT`.
 
-## Railway hosting
+## Netlify hosting at yoder.ing/megpt
 
-`railway.toml` selects the multi-stage Dockerfile. Bun builds static HTML, CSS, and JavaScript. The final container contains Caddy and the exported files only; it does not contain the Next.js server, Bun, Node, or a database client.
+The archive is built into `public/megpt` in the `yodering/portfolio-react` repository. Netlify publishes it with the portfolio's existing `dist` deployment. No separate MeGPT container, backend, or database is needed.
 
-Set these build variables to preserve the public URL:
+The portfolio's `scripts/build-megpt.mjs` downloads this public repository at a pinned source commit and runs `bun install --frozen-lockfile` followed by `bun run build`. It copies the export into `public/megpt` before Vite builds the portfolio. To refresh the archive, update `sourceCommit` in that script and deploy the portfolio.
 
-```text
-NEXT_PUBLIC_BASE_PATH=/megpt
-NEXT_PUBLIC_SITE_URL=https://yoder.ing
-```
+The generated `archive-manifest.json` records the source commit. The portfolio's `_redirects` file serves retired `/megpt/api` and `/megpt/uploads` URLs with HTTP 410 for GET and HEAD requests and returns the archive's 404 page for missing paths. Existing files take precedence over that 404 rule. The portfolio's SPA fallback applies after the archive rules.
 
-Caddy listens on Railway's `PORT`, defaulting to 8080. The existing domain/proxy should continue pointing to the same MeGPT web service. Both `/` and `/megpt` serve the archive. `/megpt/about` serves the project explanation. Paths with or without trailing slashes are supported to accommodate the existing public proxy. Old `/megpt/api/*` and `/megpt/uploads/*` URLs return HTTP 410. Unknown pages return 404 instead of the homepage.
+Deploy and verify `/megpt`, `/megpt/about`, `/megpt/privacy`, `/megpt/terms`, static assets, retired URLs, and unknown URLs before stopping the Railway web service.
 
-Keep the MeGPT web service running. It is now just a static file host. Do not enable sleeping if immediate availability is preferred. Caddy still incurs Railway resource usage; savings must be measured after deployment.
+## Retire Railway resources
 
-## Complete the live retirement
+After the Netlify migration succeeds, the MeGPT web service can be stopped. The Dockerfile, Railway configuration, and generated Caddy config remain available for rollback. Reconnect the GitHub source or redeploy through the Railway CLI if a rollback is needed.
 
-1. Deploy this commit to the existing MeGPT web service, preserving its public networking and reverse proxy. Confirm the archive and About page work at `https://yoder.ing/megpt` and `https://yoder.ing/megpt/about`.
-2. Verify that the retired API returns 410 and that no Discord listener remains in the web deployment.
-3. Stop the **MeGPT project's Postgres service** after the static deployment succeeds. This stops database compute charges. Its retained volume and backups continue to incur storage charges until removed.
-4. If permanently discarding old conversations, delete that database service's volume and backups as a separate irreversible step. The static site never copies or exposes old conversations or images. Any historical Discord threads remain in Discord until separately deleted.
-5. Remove obsolete database, Discord, Google OAuth, NextAuth, and Umami environment variables from the MeGPT web service. No secrets are required for the archive. Do not modify PJBot or other projects.
+Stop the **MeGPT project's Postgres service** if it is still running. Retained volumes and backups may continue to incur storage charges until removed. Deleting volumes and backups permanently discards old conversations and should be handled separately. The static archive contains no old conversations or uploads. Historical Discord threads remain in Discord.
 
-The static build does not itself stop or delete Railway database resources. Railway CLI authentication is required to finish that operational step.
+Remove obsolete database, Discord, Google OAuth, NextAuth, and Umami environment variables from retired MeGPT services. Do not modify PJBot or other projects. Building the archive does not itself stop or delete Railway resources.
