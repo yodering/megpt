@@ -1,0 +1,11 @@
+[build]
+command = "bun run build"
+publish = "netlify-dist"
+
+[build.environment]
+BUN_VERSION = "1.4.2"
+NODE_VERSION = "22"
+NEXT_PUBLIC_BASE_PATH = "/megpt"
+NEXT_PUBLIC_SITE_URL = "https://yoder.ing"
+NEXT_TELEMETRY_DISABLED = "1"
+NETLIFY_NEXT_PLUGIN_SKIP = "true"
